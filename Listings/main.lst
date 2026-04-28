@@ -1,0 +1,1302 @@
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 1   
+
+
+C51 COMPILER V9.53.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN .\Objects\main.obj
+COMPILER INVOKED BY: C:\Keil_v5\C51\BIN\C51.EXE main.c BROWSE DEBUG OBJECTEXTEND PRINT(.\Listings\main.lst) TABS(2) OBJE
+                    -CT(.\Objects\main.obj)
+
+line level    source
+
+   1          #include <REG51.H>
+   2          #include <intrins.h>
+   3          
+   4          /*
+   5            STC15W204S CW keyer
+   6            Keil C51
+   7          
+   8            Pin mapping:
+   9              P5.5 -> DOT button, active LOW
+  10              P5.4 -> DASH button, active LOW
+  11              P3.3 -> KEY output + onboard LED
+  12              P3.2 -> sidetone output to passive piezo / transistor speaker driver
+  13          
+  14              P3.0 -> DOWN button, active LOW
+  15              P3.1 -> UP button, active LOW
+  16          
+  17            Normal mode:
+  18              Short DOWN -> automatic message: CQ CQ DE EW6ML EW6ML EW6ML K
+  19              Short UP   -> automatic message: 73!
+  20          
+  21              Long DOWN  -> speed DOWN
+  22              Long UP    -> speed UP
+  23          
+  24            Tone adjustment:
+  25              Hold DASH button P5.4 and press:
+  26                P3.0 -> tone DOWN
+  27                P3.1 -> tone UP
+  28          */
+  29          
+  30          typedef unsigned char  u8;
+  31          typedef unsigned int   u16;
+  32          typedef unsigned long  u32;
+  33          typedef signed char    s8;
+  34          
+  35          /*
+  36            Set this to the clock frequency selected in STC-ISP.
+  37          */
+  38          #define FOSC_HZ             11059200UL
+  39          
+  40          #define DEFAULT_WPM         20
+  41          #define MIN_WPM             5
+  42          #define MAX_WPM             35
+  43          
+  44          #define DEFAULT_TONE_HZ     1000
+  45          #define MIN_TONE_HZ         0
+  46          #define MAX_TONE_HZ         2500
+  47          #define TONE_STEP_HZ        100
+  48          
+  49          #define DEBOUNCE_MS         20
+  50          #define LONG_PRESS_MS       1000
+  51          
+  52          /*
+  53            Timer0 interrupt period: 100 us.
+  54          */
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 2   
+
+  55          #define TIMER0_TICK_US      100UL
+  56          #define TIMER0_TICKS_PER_SECOND (1000000UL / TIMER0_TICK_US)
+  57          #define TIMER0_RELOAD       (65536UL - (FOSC_HZ / TIMER0_TICKS_PER_SECOND))
+  58          
+  59          /*
+  60            EEPROM format:
+  61              byte 0: magic
+  62              byte 1: WPM
+  63              byte 2: tone index:
+  64                      0  = buzzer disabled during normal work
+  65                      10 = 1000 Hz
+  66                      25 = 2500 Hz
+  67              byte 3: checksum
+  68          */
+  69          #define EEPROM_MAGIC_OLD    0xC5
+  70          #define EEPROM_MAGIC        0xC6
+  71          
+  72          #define EEPROM_ADDR_MAGIC   0x0000
+  73          #define EEPROM_ADDR_WPM     0x0001
+  74          #define EEPROM_ADDR_TONE    0x0002
+  75          #define EEPROM_ADDR_CHECK   0x0003
+  76          
+  77          #define EEPROM_SAVE_DELAY_MS 600
+  78          
+  79          /*
+  80            Automatic messages.
+  81            Stored in Flash/code memory, not in RAM.
+  82          
+  83            Morse format:
+  84              .  -> dot
+  85              -  -> dash
+  86              space -> letter gap
+  87              / -> word gap
+  88          */
+  89          
+  90          /*
+  91            CQ CQ DE EW6ML EW6ML EW6ML K
+  92          */
+  93          const char code MSG_CQ[] =
+  94              "-.-. --.-/"
+  95              "-.-. --.-/"
+  96              "-.. ./"
+  97              ". .-- -.... -- .-../"
+  98              ". .-- -.... -- .-../"
+  99              ". .-- -.... -- .-../"
+ 100              "-.-";
+ 101          
+ 102          /*
+ 103            TNX QSO 73
+ 104          
+ 105            T = -
+ 106            N = -.
+ 107            X = -..-
+ 108          
+ 109            Q = --.-
+ 110            S = ...
+ 111            O = ---
+ 112          
+ 113            7 = --...
+ 114            3 = ...--
+ 115          */
+ 116          const char code MSG_73[] =
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 3   
+
+ 117              "- -. -..-/"
+ 118              "--.- ... ---/"
+ 119              "--... ...--";
+ 120          
+ 121          /* STC special function registers */
+ 122          sfr AUXR = 0x8E;
+ 123          
+ 124          sfr P3M1 = 0xB1;
+ 125          sfr P3M0 = 0xB2;
+ 126          
+ 127          sfr P5   = 0xC8;
+ 128          sfr P5M1 = 0xC9;
+ 129          sfr P5M0 = 0xCA;
+ 130          
+ 131          /* STC IAP / EEPROM registers */
+ 132          sfr IAP_DATA  = 0xC2;
+ 133          sfr IAP_ADDRH = 0xC3;
+ 134          sfr IAP_ADDRL = 0xC4;
+ 135          sfr IAP_CMD   = 0xC5;
+ 136          sfr IAP_TRIG  = 0xC6;
+ 137          sfr IAP_CONTR = 0xC7;
+ 138          
+ 139          #define ENABLE_IAP          0x82
+ 140          #define CMD_IAP_IDLE        0
+ 141          #define CMD_IAP_READ        1
+ 142          #define CMD_IAP_PROGRAM     2
+ 143          #define CMD_IAP_ERASE       3
+ 144          
+ 145          /* Pins */
+ 146          sbit PIEZO_OUT = P3^2;
+ 147          sbit KEY_OUT   = P3^3;
+ 148          
+ 149          sbit DOWN_IN = P3^0;
+ 150          sbit UP_IN   = P3^1;
+ 151          
+ 152          sbit DASH_IN = P5^4;
+ 153          sbit DOT_IN  = P5^5;
+ 154          
+ 155          volatile u32 g_ms = 0;
+ 156          volatile u8 toneEnabled = 0;
+ 157          volatile u8 tick100usCounter = 0;
+ 158          
+ 159          /*
+ 160            Tone generator.
+ 161            Timer tick = 10000 Hz.
+ 162          */
+ 163          volatile u16 toneAcc = 0;
+ 164          
+ 165          u8 speedWpm = DEFAULT_WPM;
+ 166          u16 toneHz = DEFAULT_TONE_HZ;
+ 167          
+ 168          u8 eepromSavePending = 0;
+ 169          u32 lastSettingChangeMs = 0;
+ 170          
+ 171          /* Debounced button states */
+ 172          u8 dotStable = 0;
+ 173          u8 dashStable = 0;
+ 174          u8 downStable = 0;
+ 175          u8 upStable = 0;
+ 176          
+ 177          u8 dotLastRaw = 0;
+ 178          u8 dashLastRaw = 0;
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 4   
+
+ 179          u8 downLastRaw = 0;
+ 180          u8 upLastRaw = 0;
+ 181          
+ 182          u32 dotLastChangeMs = 0;
+ 183          u32 dashLastChangeMs = 0;
+ 184          u32 downLastChangeMs = 0;
+ 185          u32 upLastChangeMs = 0;
+ 186          
+ 187          typedef enum {
+ 188              STATE_IDLE = 0,
+ 189              STATE_DOT_ON,
+ 190              STATE_DOT_GAP,
+ 191              STATE_DASH_ON,
+ 192              STATE_DASH_GAP
+ 193          } KeyerState;
+ 194          
+ 195          KeyerState keyerState = STATE_IDLE;
+ 196          u32 keyerUntilMs = 0;
+ 197          
+ 198          typedef enum {
+ 199              ADJUST_STATE_IDLE = 0,
+ 200              ADJUST_STATE_TONE_ON,
+ 201              ADJUST_STATE_TONE_GAP
+ 202          } AdjustState;
+ 203          
+ 204          typedef enum {
+ 205              ADJUST_MODE_SPEED = 0,
+ 206              ADJUST_MODE_TONE = 1
+ 207          } AdjustMode;
+ 208          
+ 209          AdjustState adjustState = ADJUST_STATE_IDLE;
+ 210          AdjustMode adjustMode = ADJUST_MODE_SPEED;
+ 211          
+ 212          u32 adjustUntilMs = 0;
+ 213          s8 adjustDirection = 0;
+ 214          
+ 215          typedef enum {
+ 216              AUTO_STATE_IDLE = 0,
+ 217              AUTO_STATE_ELEMENT_ON,
+ 218              AUTO_STATE_ELEMENT_GAP,
+ 219              AUTO_STATE_LETTER_GAP,
+ 220              AUTO_STATE_WORD_GAP
+ 221          } AutoState;
+ 222          
+ 223          AutoState autoState = AUTO_STATE_IDLE;
+ 224          const char code *autoMsgPtr = 0;
+ 225          u32 autoUntilMs = 0;
+ 226          
+ 227          /* ---------- Function prototypes ---------- */
+ 228          
+ 229          void schedule_settings_save(void);
+ 230          void save_settings_to_eeprom(void);
+ 231          void handle_eeprom_save(void);
+ 232          
+ 233          void tone_on(void);
+ 234          void tone_off(void);
+ 235          void key_up(void);
+ 236          void key_down(void);
+ 237          void stop_keyer_keep_tone(void);
+ 238          
+ 239          void auto_message_start(const char code *msg);
+ 240          void auto_message_stop(void);
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 5   
+
+ 241          void handle_auto_message(void);
+ 242          
+ 243          /* ---------- Time and tone ---------- */
+ 244          
+ 245          u16 get_dot_ms(void) {
+ 246   1          return (u16)(1200 / speedWpm);
+ 247   1      }
+ 248          
+ 249          u16 get_dash_ms(void) {
+ 250   1          return (u16)(get_dot_ms() * 3);
+ 251   1      }
+ 252          
+ 253          u16 get_gap_ms(void) {
+ 254   1          return get_dot_ms();
+ 255   1      }
+ 256          
+ 257          void timer0_load(void) {
+ 258   1          TH0 = (u8)(TIMER0_RELOAD >> 8);
+ 259   1          TL0 = (u8)(TIMER0_RELOAD & 0xFF);
+ 260   1      }
+ 261          
+ 262          void timer0_init_100us(void) {
+ 263   1          TMOD &= 0xF0;
+ 264   1          TMOD |= 0x01;
+ 265   1      
+ 266   1          /*
+ 267   1            AUXR bit7 = 1 -> Timer0 works in 1T mode on STC15.
+ 268   1          */
+ 269   1          AUXR |= 0x80;
+ 270   1      
+ 271   1          timer0_load();
+ 272   1      
+ 273   1          ET0 = 1;
+ 274   1          TR0 = 1;
+ 275   1      }
+ 276          
+ 277          void timer0_isr(void) interrupt 1 {
+ 278   1          timer0_load();
+ 279   1      
+ 280   1          /*
+ 281   1            100 us tick.
+ 282   1            10 ticks = 1 ms.
+ 283   1          */
+ 284   1          tick100usCounter++;
+ 285   1      
+ 286   1          if (tick100usCounter >= 10) {
+ 287   2              tick100usCounter = 0;
+ 288   2              g_ms++;
+ 289   2          }
+ 290   1      
+ 291   1          if (toneEnabled && toneHz > 0) {
+ 292   2              toneAcc += (u16)(toneHz * 2);
+ 293   2      
+ 294   2              if (toneAcc >= (u16)TIMER0_TICKS_PER_SECOND) {
+ 295   3                  toneAcc -= (u16)TIMER0_TICKS_PER_SECOND;
+ 296   3                  PIEZO_OUT = !PIEZO_OUT;
+ 297   3              }
+ 298   2          } else {
+ 299   2              toneAcc = 0;
+ 300   2              PIEZO_OUT = 0;
+ 301   2          }
+ 302   1      }
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 6   
+
+ 303          
+ 304          u32 millis(void) {
+ 305   1          u32 value;
+ 306   1      
+ 307   1          EA = 0;
+ 308   1          value = g_ms;
+ 309   1          EA = 1;
+ 310   1      
+ 311   1          return value;
+ 312   1      }
+ 313          
+ 314          void delay_ms_blocking(u16 ms) {
+ 315   1          u32 start = millis();
+ 316   1      
+ 317   1          while ((millis() - start) < ms) {
+ 318   2          }
+ 319   1      }
+ 320          
+ 321          void tone_off(void) {
+ 322   1          toneEnabled = 0;
+ 323   1          toneAcc = 0;
+ 324   1          PIEZO_OUT = 0;
+ 325   1      }
+ 326          
+ 327          void tone_on(void) {
+ 328   1          if (toneHz == 0) {
+ 329   2              tone_off();
+ 330   2              return;
+ 331   2          }
+ 332   1      
+ 333   1          toneAcc = 0;
+ 334   1          toneEnabled = 1;
+ 335   1      }
+ 336          
+ 337          void key_down(void) {
+ 338   1          KEY_OUT = 1;
+ 339   1          tone_on();
+ 340   1      }
+ 341          
+ 342          void key_up(void) {
+ 343   1          KEY_OUT = 0;
+ 344   1          tone_off();
+ 345   1      }
+ 346          
+ 347          void key_output_off_only(void) {
+ 348   1          KEY_OUT = 0;
+ 349   1      }
+ 350          
+ 351          /* ---------- EEPROM / IAP ---------- */
+ 352          
+ 353          void iap_idle(void) {
+ 354   1          IAP_CONTR = 0;
+ 355   1          IAP_CMD = CMD_IAP_IDLE;
+ 356   1          IAP_TRIG = 0;
+ 357   1          IAP_ADDRH = 0x80;
+ 358   1          IAP_ADDRL = 0;
+ 359   1      }
+ 360          
+ 361          u8 iap_read_byte(u16 addr) {
+ 362   1          u8 value;
+ 363   1      
+ 364   1          IAP_CONTR = ENABLE_IAP;
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 7   
+
+ 365   1          IAP_CMD = CMD_IAP_READ;
+ 366   1          IAP_ADDRL = (u8)(addr & 0xFF);
+ 367   1          IAP_ADDRH = (u8)(addr >> 8);
+ 368   1      
+ 369   1          IAP_TRIG = 0x5A;
+ 370   1          IAP_TRIG = 0xA5;
+ 371   1          _nop_();
+ 372   1      
+ 373   1          value = IAP_DATA;
+ 374   1      
+ 375   1          iap_idle();
+ 376   1      
+ 377   1          return value;
+ 378   1      }
+ 379          
+ 380          void iap_program_byte(u16 addr, u8 value) {
+ 381   1          IAP_CONTR = ENABLE_IAP;
+ 382   1          IAP_CMD = CMD_IAP_PROGRAM;
+ 383   1          IAP_ADDRL = (u8)(addr & 0xFF);
+ 384   1          IAP_ADDRH = (u8)(addr >> 8);
+ 385   1          IAP_DATA = value;
+ 386   1      
+ 387   1          IAP_TRIG = 0x5A;
+ 388   1          IAP_TRIG = 0xA5;
+ 389   1          _nop_();
+ 390   1      
+ 391   1          iap_idle();
+ 392   1      }
+ 393          
+ 394          void iap_erase_sector(u16 addr) {
+ 395   1          IAP_CONTR = ENABLE_IAP;
+ 396   1          IAP_CMD = CMD_IAP_ERASE;
+ 397   1          IAP_ADDRL = (u8)(addr & 0xFF);
+ 398   1          IAP_ADDRH = (u8)(addr >> 8);
+ 399   1      
+ 400   1          IAP_TRIG = 0x5A;
+ 401   1          IAP_TRIG = 0xA5;
+ 402   1          _nop_();
+ 403   1      
+ 404   1          iap_idle();
+ 405   1      }
+ 406          
+ 407          u8 eeprom_old_checksum(u8 wpm) {
+ 408   1          return (u8)(EEPROM_MAGIC_OLD ^ wpm ^ 0x5A);
+ 409   1      }
+ 410          
+ 411          u8 eeprom_checksum(u8 wpm, u8 toneIndex) {
+ 412   1          return (u8)(EEPROM_MAGIC ^ wpm ^ toneIndex ^ 0x5A);
+ 413   1      }
+ 414          
+ 415          u8 tone_hz_to_index(u16 hz) {
+ 416   1          return (u8)(hz / 100);
+ 417   1      }
+ 418          
+ 419          u16 tone_index_to_hz(u8 index) {
+ 420   1          return (u16)index * 100;
+ 421   1      }
+ 422          
+ 423          void load_settings_from_eeprom(void) {
+ 424   1          u8 magic;
+ 425   1          u8 savedWpm;
+ 426   1          u8 savedToneIndex;
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 8   
+
+ 427   1          u8 savedCheck;
+ 428   1      
+ 429   1          magic = iap_read_byte(EEPROM_ADDR_MAGIC);
+ 430   1          savedWpm = iap_read_byte(EEPROM_ADDR_WPM);
+ 431   1          savedToneIndex = iap_read_byte(EEPROM_ADDR_TONE);
+ 432   1          savedCheck = iap_read_byte(EEPROM_ADDR_CHECK);
+ 433   1      
+ 434   1          /*
+ 435   1            New format.
+ 436   1            Tone index 0 is allowed in EEPROM, but at startup it is replaced
+ 437   1            with DEFAULT_TONE_HZ so the startup greeting always sounds.
+ 438   1          */
+ 439   1          if (magic == EEPROM_MAGIC &&
+ 440   1              savedWpm >= MIN_WPM &&
+ 441   1              savedWpm <= MAX_WPM &&
+ 442   1              savedToneIndex <= (MAX_TONE_HZ / 100) &&
+ 443   1              savedCheck == eeprom_checksum(savedWpm, savedToneIndex)) {
+ 444   2      
+ 445   2              speedWpm = savedWpm;
+ 446   2              toneHz = tone_index_to_hz(savedToneIndex);
+ 447   2      
+ 448   2              if (toneHz == 0) {
+ 449   3                  toneHz = DEFAULT_TONE_HZ;
+ 450   3                  schedule_settings_save();
+ 451   3              }
+ 452   2      
+ 453   2              return;
+ 454   2          }
+ 455   1      
+ 456   1          /*
+ 457   1            Old format compatibility:
+ 458   1            restore WPM, use default tone.
+ 459   1          */
+ 460   1          if (magic == EEPROM_MAGIC_OLD &&
+ 461   1              savedWpm >= MIN_WPM &&
+ 462   1              savedWpm <= MAX_WPM &&
+ 463   1              savedToneIndex == eeprom_old_checksum(savedWpm)) {
+ 464   2      
+ 465   2              speedWpm = savedWpm;
+ 466   2              toneHz = DEFAULT_TONE_HZ;
+ 467   2              return;
+ 468   2          }
+ 469   1      
+ 470   1          speedWpm = DEFAULT_WPM;
+ 471   1          toneHz = DEFAULT_TONE_HZ;
+ 472   1      }
+ 473          
+ 474          void schedule_settings_save(void) {
+ 475   1          eepromSavePending = 1;
+ 476   1          lastSettingChangeMs = millis();
+ 477   1      }
+ 478          
+ 479          void save_settings_to_eeprom(void) {
+ 480   1          u8 toneIndex;
+ 481   1      
+ 482   1          toneIndex = tone_hz_to_index(toneHz);
+ 483   1      
+ 484   1          /*
+ 485   1            EEPROM sector is erased before writing.
+ 486   1          */
+ 487   1          iap_erase_sector(EEPROM_ADDR_MAGIC);
+ 488   1      
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 9   
+
+ 489   1          iap_program_byte(EEPROM_ADDR_MAGIC, EEPROM_MAGIC);
+ 490   1          iap_program_byte(EEPROM_ADDR_WPM, speedWpm);
+ 491   1          iap_program_byte(EEPROM_ADDR_TONE, toneIndex);
+ 492   1          iap_program_byte(EEPROM_ADDR_CHECK, eeprom_checksum(speedWpm, toneIndex));
+ 493   1      }
+ 494          
+ 495          void handle_eeprom_save(void) {
+ 496   1          if (!eepromSavePending) {
+ 497   2              return;
+ 498   2          }
+ 499   1      
+ 500   1          /*
+ 501   1            Do not write while adjustment buttons are still held.
+ 502   1            This reduces EEPROM wear during long button holds.
+ 503   1          */
+ 504   1          if (downStable || upStable) {
+ 505   2              return;
+ 506   2          }
+ 507   1      
+ 508   1          if ((millis() - lastSettingChangeMs) >= EEPROM_SAVE_DELAY_MS) {
+ 509   2              save_settings_to_eeprom();
+ 510   2              eepromSavePending = 0;
+ 511   2          }
+ 512   1      }
+ 513          
+ 514          /* ---------- Pins ---------- */
+ 515          
+ 516          void pins_init(void) {
+ 517   1          /*
+ 518   1            P3.2 -> piezo output, push-pull
+ 519   1            P3.3 -> key output, push-pull
+ 520   1      
+ 521   1            P3.0 -> DOWN input
+ 522   1            P3.1 -> UP input
+ 523   1      
+ 524   1            P5.4 -> dash button input
+ 525   1            P5.5 -> dot button input
+ 526   1          */
+ 527   1      
+ 528   1          /* P3.2 and P3.3 push-pull outputs */
+ 529   1          P3M0 |= 0x0C;
+ 530   1          P3M1 &= ~0x0C;
+ 531   1      
+ 532   1          /*
+ 533   1            P3.0 and P3.1 as quasi-bidirectional inputs with weak pull-up.
+ 534   1          */
+ 535   1          P3M0 &= ~0x03;
+ 536   1          P3M1 &= ~0x03;
+ 537   1          P3 |= 0x03;
+ 538   1      
+ 539   1          /*
+ 540   1            P5.4 and P5.5 as quasi-bidirectional inputs with weak pull-up.
+ 541   1          */
+ 542   1          P5M0 &= ~0x30;
+ 543   1          P5M1 &= ~0x30;
+ 544   1          P5 |= 0x30;
+ 545   1      
+ 546   1          KEY_OUT = 0;
+ 547   1          PIEZO_OUT = 0;
+ 548   1      }
+ 549          
+ 550          /* ---------- Buttons ---------- */
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 10  
+
+ 551          
+ 552          void update_buttons(void) {
+ 553   1          u32 now = millis();
+ 554   1      
+ 555   1          u8 dotRaw;
+ 556   1          u8 dashRaw;
+ 557   1          u8 downRaw;
+ 558   1          u8 upRaw;
+ 559   1      
+ 560   1          dotRaw = (DOT_IN == 0) ? 1 : 0;
+ 561   1          dashRaw = (DASH_IN == 0) ? 1 : 0;
+ 562   1          downRaw = (DOWN_IN == 0) ? 1 : 0;
+ 563   1          upRaw = (UP_IN == 0) ? 1 : 0;
+ 564   1      
+ 565   1          if (dotRaw != dotLastRaw) {
+ 566   2              dotLastRaw = dotRaw;
+ 567   2              dotLastChangeMs = now;
+ 568   2          }
+ 569   1      
+ 570   1          if ((now - dotLastChangeMs) >= DEBOUNCE_MS) {
+ 571   2              dotStable = dotRaw;
+ 572   2          }
+ 573   1      
+ 574   1          if (dashRaw != dashLastRaw) {
+ 575   2              dashLastRaw = dashRaw;
+ 576   2              dashLastChangeMs = now;
+ 577   2          }
+ 578   1      
+ 579   1          if ((now - dashLastChangeMs) >= DEBOUNCE_MS) {
+ 580   2              dashStable = dashRaw;
+ 581   2          }
+ 582   1      
+ 583   1          if (downRaw != downLastRaw) {
+ 584   2              downLastRaw = downRaw;
+ 585   2              downLastChangeMs = now;
+ 586   2          }
+ 587   1      
+ 588   1          if ((now - downLastChangeMs) >= DEBOUNCE_MS) {
+ 589   2              downStable = downRaw;
+ 590   2          }
+ 591   1      
+ 592   1          if (upRaw != upLastRaw) {
+ 593   2              upLastRaw = upRaw;
+ 594   2              upLastChangeMs = now;
+ 595   2          }
+ 596   1      
+ 597   1          if ((now - upLastChangeMs) >= DEBOUNCE_MS) {
+ 598   2              upStable = upRaw;
+ 599   2          }
+ 600   1      }
+ 601          
+ 602          /* ---------- Startup greeting ---------- */
+ 603          
+ 604          void send_startup_tone_dot(void) {
+ 605   1          tone_on();
+ 606   1          delay_ms_blocking(get_dot_ms());
+ 607   1          tone_off();
+ 608   1          delay_ms_blocking(get_gap_ms());
+ 609   1      }
+ 610          
+ 611          void send_startup_hi(void) {
+ 612   1          u8 i;
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 11  
+
+ 613   1      
+ 614   1          /*
+ 615   1            Startup greeting: "HI"
+ 616   1            H = ....
+ 617   1            I = ..
+ 618   1      
+ 619   1            Sidetone only.
+ 620   1            KEY_OUT is not activated.
+ 621   1          */
+ 622   1          KEY_OUT = 0;
+ 623   1      
+ 624   1          delay_ms_blocking(300);
+ 625   1      
+ 626   1          /* H */
+ 627   1          for (i = 0; i < 4; i++) {
+ 628   2              send_startup_tone_dot();
+ 629   2          }
+ 630   1      
+ 631   1          /*
+ 632   1            Letter gap.
+ 633   1            One element gap is already included after the last dot,
+ 634   1            so add 2 more dot lengths.
+ 635   1          */
+ 636   1          delay_ms_blocking(get_dot_ms() * 2);
+ 637   1      
+ 638   1          /* I */
+ 639   1          for (i = 0; i < 2; i++) {
+ 640   2              send_startup_tone_dot();
+ 641   2          }
+ 642   1      
+ 643   1          tone_off();
+ 644   1          KEY_OUT = 0;
+ 645   1      
+ 646   1          delay_ms_blocking(300);
+ 647   1      }
+ 648          
+ 649          /* ---------- Automatic CW messages ---------- */
+ 650          
+ 651          void auto_message_stop(void) {
+ 652   1          key_up();
+ 653   1      
+ 654   1          autoState = AUTO_STATE_IDLE;
+ 655   1          autoMsgPtr = 0;
+ 656   1          autoUntilMs = 0;
+ 657   1      }
+ 658          
+ 659          void auto_message_next_symbol(void) {
+ 660   1          char c;
+ 661   1          u32 now;
+ 662   1      
+ 663   1          if (autoMsgPtr == 0) {
+ 664   2              auto_message_stop();
+ 665   2              return;
+ 666   2          }
+ 667   1      
+ 668   1          while (1) {
+ 669   2              now = millis();
+ 670   2              c = *autoMsgPtr;
+ 671   2      
+ 672   2              if (c == 0) {
+ 673   3                  auto_message_stop();
+ 674   3                  return;
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 12  
+
+ 675   3              }
+ 676   2      
+ 677   2              autoMsgPtr++;
+ 678   2      
+ 679   2              if (c == '.') {
+ 680   3                  key_down();
+ 681   3                  autoState = AUTO_STATE_ELEMENT_ON;
+ 682   3                  autoUntilMs = now + get_dot_ms();
+ 683   3                  return;
+ 684   3              }
+ 685   2      
+ 686   2              if (c == '-') {
+ 687   3                  key_down();
+ 688   3                  autoState = AUTO_STATE_ELEMENT_ON;
+ 689   3                  autoUntilMs = now + get_dash_ms();
+ 690   3                  return;
+ 691   3              }
+ 692   2      
+ 693   2              if (c == ' ') {
+ 694   3                  /*
+ 695   3                    After each element we already add 1 dot gap.
+ 696   3                    Letter gap must be 3 dots total, so add 2 more dots.
+ 697   3                  */
+ 698   3                  key_up();
+ 699   3                  autoState = AUTO_STATE_LETTER_GAP;
+ 700   3                  autoUntilMs = now + ((u32)get_dot_ms() * 2);
+ 701   3                  return;
+ 702   3              }
+ 703   2      
+ 704   2              if (c == '/') {
+ 705   3                  /*
+ 706   3                    After each element we already add 1 dot gap.
+ 707   3                    Word gap must be 7 dots total, so add 6 more dots.
+ 708   3                  */
+ 709   3                  key_up();
+ 710   3                  autoState = AUTO_STATE_WORD_GAP;
+ 711   3                  autoUntilMs = now + ((u32)get_dot_ms() * 6);
+ 712   3                  return;
+ 713   3              }
+ 714   2      
+ 715   2              /*
+ 716   2                Unknown character: skip it and read next symbol.
+ 717   2                No recursion is used here.
+ 718   2              */
+ 719   2          }
+ 720   1      }
+ 721          
+ 722          void auto_message_start(const char code *msg) {
+ 723   1          key_up();
+ 724   1      
+ 725   1          keyerState = STATE_IDLE;
+ 726   1          adjustState = ADJUST_STATE_IDLE;
+ 727   1          adjustDirection = 0;
+ 728   1      
+ 729   1          autoMsgPtr = msg;
+ 730   1          autoState = AUTO_STATE_IDLE;
+ 731   1      
+ 732   1          auto_message_next_symbol();
+ 733   1      }
+ 734          
+ 735          void handle_auto_message(void) {
+ 736   1          u32 now = millis();
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 13  
+
+ 737   1      
+ 738   1          if (autoState == AUTO_STATE_IDLE) {
+ 739   2              return;
+ 740   2          }
+ 741   1      
+ 742   1          /*
+ 743   1            Manual paddle press cancels automatic message.
+ 744   1            UP/DOWN buttons do not cancel it by short touch.
+ 745   1          */
+ 746   1          if (dotStable || dashStable) {
+ 747   2              auto_message_stop();
+ 748   2              return;
+ 749   2          }
+ 750   1      
+ 751   1          switch (autoState) {
+ 752   2              case AUTO_STATE_ELEMENT_ON:
+ 753   2                  if ((long)(now - autoUntilMs) >= 0) {
+ 754   3                      key_up();
+ 755   3      
+ 756   3                      autoState = AUTO_STATE_ELEMENT_GAP;
+ 757   3                      autoUntilMs = now + get_gap_ms();
+ 758   3                  }
+ 759   2                  break;
+ 760   2      
+ 761   2              case AUTO_STATE_ELEMENT_GAP:
+ 762   2              case AUTO_STATE_LETTER_GAP:
+ 763   2              case AUTO_STATE_WORD_GAP:
+ 764   2                  if ((long)(now - autoUntilMs) >= 0) {
+ 765   3                      auto_message_next_symbol();
+ 766   3                  }
+ 767   2                  break;
+ 768   2      
+ 769   2              default:
+ 770   2                  auto_message_stop();
+ 771   2                  break;
+ 772   2          }
+ 773   1      }
+ 774          
+ 775          /* ---------- CW keyer ---------- */
+ 776          
+ 777          void start_dot(void) {
+ 778   1          key_down();
+ 779   1      
+ 780   1          keyerState = STATE_DOT_ON;
+ 781   1          keyerUntilMs = millis() + get_dot_ms();
+ 782   1      }
+ 783          
+ 784          void start_dash(void) {
+ 785   1          key_down();
+ 786   1      
+ 787   1          keyerState = STATE_DASH_ON;
+ 788   1          keyerUntilMs = millis() + get_dash_ms();
+ 789   1      }
+ 790          
+ 791          void stop_keyer(void) {
+ 792   1          key_up();
+ 793   1          keyerState = STATE_IDLE;
+ 794   1      }
+ 795          
+ 796          void stop_keyer_keep_tone(void) {
+ 797   1          /*
+ 798   1            Used during adjustment.
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 14  
+
+ 799   1            KEY_OUT must be inactive, but sidetone must not be interrupted.
+ 800   1          */
+ 801   1          key_output_off_only();
+ 802   1          keyerState = STATE_IDLE;
+ 803   1      }
+ 804          
+ 805          void handle_keyer(void) {
+ 806   1          u32 now = millis();
+ 807   1      
+ 808   1          /*
+ 809   1            Automatic message has priority over manual keyer.
+ 810   1          */
+ 811   1          if (autoState != AUTO_STATE_IDLE) {
+ 812   2              return;
+ 813   2          }
+ 814   1      
+ 815   1          /*
+ 816   1            Adjustment mode has priority.
+ 817   1            During adjustment, KEY_OUT must stay inactive.
+ 818   1            Important: do not disable sidetone here,
+ 819   1            because adjustment buttons use sidetone feedback.
+ 820   1          */
+ 821   1          if (adjustState != ADJUST_STATE_IDLE || downStable || upStable) {
+ 822   2              stop_keyer_keep_tone();
+ 823   2              return;
+ 824   2          }
+ 825   1      
+ 826   1          switch (keyerState) {
+ 827   2              case STATE_IDLE:
+ 828   2                  /*
+ 829   2                    Dash has priority if both buttons are pressed.
+ 830   2                  */
+ 831   2                  if (dashStable) {
+ 832   3                      start_dash();
+ 833   3                  } else if (dotStable) {
+ 834   3                      start_dot();
+ 835   3                  }
+ 836   2                  break;
+ 837   2      
+ 838   2              case STATE_DOT_ON:
+ 839   2                  if ((long)(now - keyerUntilMs) >= 0) {
+ 840   3                      key_up();
+ 841   3      
+ 842   3                      keyerState = STATE_DOT_GAP;
+ 843   3                      keyerUntilMs = now + get_gap_ms();
+ 844   3                  }
+ 845   2                  break;
+ 846   2      
+ 847   2              case STATE_DOT_GAP:
+ 848   2                  if ((long)(now - keyerUntilMs) >= 0) {
+ 849   3                      if (dashStable) {
+ 850   4                          start_dash();
+ 851   4                      } else if (dotStable) {
+ 852   4                          start_dot();
+ 853   4                      } else {
+ 854   4                          keyerState = STATE_IDLE;
+ 855   4                      }
+ 856   3                  }
+ 857   2                  break;
+ 858   2      
+ 859   2              case STATE_DASH_ON:
+ 860   2                  if ((long)(now - keyerUntilMs) >= 0) {
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 15  
+
+ 861   3                      key_up();
+ 862   3      
+ 863   3                      keyerState = STATE_DASH_GAP;
+ 864   3                      keyerUntilMs = now + get_gap_ms();
+ 865   3                  }
+ 866   2                  break;
+ 867   2      
+ 868   2              case STATE_DASH_GAP:
+ 869   2                  if ((long)(now - keyerUntilMs) >= 0) {
+ 870   3                      if (dashStable) {
+ 871   4                          start_dash();
+ 872   4                      } else if (dotStable) {
+ 873   4                          start_dot();
+ 874   4                      } else {
+ 875   4                          keyerState = STATE_IDLE;
+ 876   4                      }
+ 877   3                  }
+ 878   2                  break;
+ 879   2      
+ 880   2              default:
+ 881   2                  stop_keyer();
+ 882   2                  break;
+ 883   2          }
+ 884   1      }
+ 885          
+ 886          /* ---------- Adjustment: speed and tone ---------- */
+ 887          
+ 888          s8 get_adjust_direction(void) {
+ 889   1          if (upStable && !downStable) {
+ 890   2              return 1;
+ 891   2          }
+ 892   1      
+ 893   1          if (downStable && !upStable) {
+ 894   2              return -1;
+ 895   2          }
+ 896   1      
+ 897   1          return 0;
+ 898   1      }
+ 899          
+ 900          AdjustMode get_adjust_mode(void) {
+ 901   1          /*
+ 902   1            If DASH is held while pressing UP/DOWN,
+ 903   1            adjust sidetone frequency instead of WPM.
+ 904   1          */
+ 905   1          if (dashStable) {
+ 906   2              return ADJUST_MODE_TONE;
+ 907   2          }
+ 908   1      
+ 909   1          return ADJUST_MODE_SPEED;
+ 910   1      }
+ 911          
+ 912          void change_speed(s8 direction) {
+ 913   1          if (direction > 0) {
+ 914   2              if (speedWpm < MAX_WPM) {
+ 915   3                  speedWpm++;
+ 916   3                  schedule_settings_save();
+ 917   3              }
+ 918   2          } else if (direction < 0) {
+ 919   2              if (speedWpm > MIN_WPM) {
+ 920   3                  speedWpm--;
+ 921   3                  schedule_settings_save();
+ 922   3              }
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 16  
+
+ 923   2          }
+ 924   1      }
+ 925          
+ 926          void change_tone(s8 direction) {
+ 927   1          if (direction > 0) {
+ 928   2              if (toneHz < MAX_TONE_HZ) {
+ 929   3                  toneHz += TONE_STEP_HZ;
+ 930   3      
+ 931   3                  if (toneHz > MAX_TONE_HZ) {
+ 932   4                      toneHz = MAX_TONE_HZ;
+ 933   4                  }
+ 934   3      
+ 935   3                  schedule_settings_save();
+ 936   3              }
+ 937   2          } else if (direction < 0) {
+ 938   2              if (toneHz > MIN_TONE_HZ) {
+ 939   3                  if (toneHz >= TONE_STEP_HZ) {
+ 940   4                      toneHz -= TONE_STEP_HZ;
+ 941   4                  } else {
+ 942   4                      toneHz = MIN_TONE_HZ;
+ 943   4                  }
+ 944   3      
+ 945   3                  schedule_settings_save();
+ 946   3              }
+ 947   2          }
+ 948   1      }
+ 949          
+ 950          void apply_adjustment(s8 direction, AdjustMode mode) {
+ 951   1          if (mode == ADJUST_MODE_TONE) {
+ 952   2              change_tone(direction);
+ 953   2          } else {
+ 954   2              change_speed(direction);
+ 955   2          }
+ 956   1      }
+ 957          
+ 958          void start_adjust_tone_dot(s8 direction) {
+ 959   1          /*
+ 960   1            Adjustment feedback:
+ 961   1              - speed mode: change WPM by one step
+ 962   1              - tone mode: change tone by 100 Hz
+ 963   1      
+ 964   1            Then play one dot using sidetone only.
+ 965   1            KEY_OUT stays inactive.
+ 966   1          */
+ 967   1          KEY_OUT = 0;
+ 968   1      
+ 969   1          adjustDirection = direction;
+ 970   1          adjustMode = get_adjust_mode();
+ 971   1      
+ 972   1          apply_adjustment(direction, adjustMode);
+ 973   1      
+ 974   1          tone_on();
+ 975   1      
+ 976   1          adjustState = ADJUST_STATE_TONE_ON;
+ 977   1          adjustUntilMs = millis() + get_dot_ms();
+ 978   1      }
+ 979          
+ 980          void start_adjust_speed_dot(s8 direction) {
+ 981   1          /*
+ 982   1            Speed adjustment feedback.
+ 983   1            Used only after long UP/DOWN press.
+ 984   1          */
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 17  
+
+ 985   1          KEY_OUT = 0;
+ 986   1      
+ 987   1          adjustDirection = direction;
+ 988   1          adjustMode = ADJUST_MODE_SPEED;
+ 989   1      
+ 990   1          apply_adjustment(direction, adjustMode);
+ 991   1      
+ 992   1          tone_on();
+ 993   1      
+ 994   1          adjustState = ADJUST_STATE_TONE_ON;
+ 995   1          adjustUntilMs = millis() + get_dot_ms();
+ 996   1      }
+ 997          
+ 998          void handle_adjust_buttons(void) {
+ 999   1          u32 now = millis();
+1000   1          s8 direction;
+1001   1      
+1002   1          static u8 activeButton = 0;
+1003   1          static u8 longMode = 0;
+1004   1          static u32 pressStartMs = 0;
+1005   1      
+1006   1          /*
+1007   1            activeButton:
+1008   1              0 = no UP/DOWN button is being tracked
+1009   1              1 = DOWN
+1010   1              2 = UP
+1011   1          */
+1012   1      
+1013   1          /*
+1014   1            Tone adjustment mode:
+1015   1            Hold DASH and press UP/DOWN.
+1016   1            This mode keeps the old behavior.
+1017   1          */
+1018   1          if (dashStable) {
+1019   2              activeButton = 0;
+1020   2              longMode = 0;
+1021   2      
+1022   2              switch (adjustState) {
+1023   3                  case ADJUST_STATE_IDLE:
+1024   3                      direction = get_adjust_direction();
+1025   3      
+1026   3                      if (direction != 0) {
+1027   4                          auto_message_stop();
+1028   4                          stop_keyer_keep_tone();
+1029   4                          start_adjust_tone_dot(direction);
+1030   4                      }
+1031   3                      break;
+1032   3      
+1033   3                  case ADJUST_STATE_TONE_ON:
+1034   3                      if ((long)(now - adjustUntilMs) >= 0) {
+1035   4                          tone_off();
+1036   4                          KEY_OUT = 0;
+1037   4      
+1038   4                          adjustState = ADJUST_STATE_TONE_GAP;
+1039   4                          adjustUntilMs = now + get_gap_ms();
+1040   4                      }
+1041   3                      break;
+1042   3      
+1043   3                  case ADJUST_STATE_TONE_GAP:
+1044   3                      if ((long)(now - adjustUntilMs) >= 0) {
+1045   4                          direction = get_adjust_direction();
+1046   4      
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 18  
+
+1047   4                          if (direction != 0) {
+1048   5                              start_adjust_tone_dot(direction);
+1049   5                          } else {
+1050   5                              tone_off();
+1051   5                              KEY_OUT = 0;
+1052   5                              adjustDirection = 0;
+1053   5                              adjustState = ADJUST_STATE_IDLE;
+1054   5                          }
+1055   4                      }
+1056   3                      break;
+1057   3      
+1058   3                  default:
+1059   3                      tone_off();
+1060   3                      KEY_OUT = 0;
+1061   3                      adjustDirection = 0;
+1062   3                      adjustState = ADJUST_STATE_IDLE;
+1063   3                      break;
+1064   3              }
+1065   2      
+1066   2              return;
+1067   2          }
+1068   1      
+1069   1          /*
+1070   1            If both UP and DOWN are pressed, do nothing.
+1071   1            This prevents accidental speed changes.
+1072   1          */
+1073   1          if (downStable && upStable) {
+1074   2              return;
+1075   2          }
+1076   1      
+1077   1          /*
+1078   1            Start tracking a new button press.
+1079   1            Important: no speed change here.
+1080   1          */
+1081   1          if (activeButton == 0) {
+1082   2              if (downStable) {
+1083   3                  activeButton = 1;
+1084   3                  longMode = 0;
+1085   3                  pressStartMs = now;
+1086   3              } else if (upStable) {
+1087   3                  activeButton = 2;
+1088   3                  longMode = 0;
+1089   3                  pressStartMs = now;
+1090   3              } else {
+1091   3                  return;
+1092   3              }
+1093   2          }
+1094   1      
+1095   1          /*
+1096   1            DOWN is being tracked.
+1097   1          */
+1098   1          if (activeButton == 1) {
+1099   2              /*
+1100   2                Button released before long press threshold:
+1101   2                short press -> CQ message.
+1102   2              */
+1103   2              if (!downStable) {
+1104   3                  if (!longMode) {
+1105   4                      if (autoState == AUTO_STATE_IDLE && adjustState == ADJUST_STATE_IDLE) {
+1106   5                          auto_message_start(MSG_CQ);
+1107   5                      }
+1108   4                  } else {
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 19  
+
+1109   4                      tone_off();
+1110   4                      KEY_OUT = 0;
+1111   4                      adjustDirection = 0;
+1112   4                      adjustState = ADJUST_STATE_IDLE;
+1113   4                  }
+1114   3      
+1115   3                  activeButton = 0;
+1116   3                  longMode = 0;
+1117   3                  return;
+1118   3              }
+1119   2      
+1120   2              /*
+1121   2                Button is still held.
+1122   2                Enable speed adjustment only after LONG_PRESS_MS.
+1123   2              */
+1124   2              if (!longMode) {
+1125   3                  if ((now - pressStartMs) < LONG_PRESS_MS) {
+1126   4                      return;
+1127   4                  }
+1128   3      
+1129   3                  longMode = 1;
+1130   3                  auto_message_stop();
+1131   3                  stop_keyer_keep_tone();
+1132   3              }
+1133   2      
+1134   2              direction = -1;
+1135   2          }
+1136   1      
+1137   1          /*
+1138   1            UP is being tracked.
+1139   1          */
+1140   1          else if (activeButton == 2) {
+1141   2              /*
+1142   2                Button released before long press threshold:
+1143   2                short press -> TNX QSO 73 message.
+1144   2              */
+1145   2              if (!upStable) {
+1146   3                  if (!longMode) {
+1147   4                      if (autoState == AUTO_STATE_IDLE && adjustState == ADJUST_STATE_IDLE) {
+1148   5                          auto_message_start(MSG_73);
+1149   5                      }
+1150   4                  } else {
+1151   4                      tone_off();
+1152   4                      KEY_OUT = 0;
+1153   4                      adjustDirection = 0;
+1154   4                      adjustState = ADJUST_STATE_IDLE;
+1155   4                  }
+1156   3      
+1157   3                  activeButton = 0;
+1158   3                  longMode = 0;
+1159   3                  return;
+1160   3              }
+1161   2      
+1162   2              /*
+1163   2                Button is still held.
+1164   2                Enable speed adjustment only after LONG_PRESS_MS.
+1165   2              */
+1166   2              if (!longMode) {
+1167   3                  if ((now - pressStartMs) < LONG_PRESS_MS) {
+1168   4                      return;
+1169   4                  }
+1170   3      
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 20  
+
+1171   3                  longMode = 1;
+1172   3                  auto_message_stop();
+1173   3                  stop_keyer_keep_tone();
+1174   3              }
+1175   2      
+1176   2              direction = 1;
+1177   2          } else {
+1178   2              activeButton = 0;
+1179   2              longMode = 0;
+1180   2              return;
+1181   2          }
+1182   1      
+1183   1          /*
+1184   1            Long press mode:
+1185   1            now and only now UP/DOWN changes WPM.
+1186   1          */
+1187   1          switch (adjustState) {
+1188   2              case ADJUST_STATE_IDLE:
+1189   2                  start_adjust_speed_dot(direction);
+1190   2                  break;
+1191   2      
+1192   2              case ADJUST_STATE_TONE_ON:
+1193   2                  if ((long)(now - adjustUntilMs) >= 0) {
+1194   3                      tone_off();
+1195   3                      KEY_OUT = 0;
+1196   3      
+1197   3                      adjustState = ADJUST_STATE_TONE_GAP;
+1198   3                      adjustUntilMs = now + get_gap_ms();
+1199   3                  }
+1200   2                  break;
+1201   2      
+1202   2              case ADJUST_STATE_TONE_GAP:
+1203   2                  if ((long)(now - adjustUntilMs) >= 0) {
+1204   3                      start_adjust_speed_dot(direction);
+1205   3                  }
+1206   2                  break;
+1207   2      
+1208   2              default:
+1209   2                  tone_off();
+1210   2                  KEY_OUT = 0;
+1211   2                  adjustDirection = 0;
+1212   2                  adjustState = ADJUST_STATE_IDLE;
+1213   2                  break;
+1214   2          }
+1215   1      }
+1216          
+1217          /* ---------- Main ---------- */
+1218          
+1219          void main(void) {
+1220   1          pins_init();
+1221   1      
+1222   1          timer0_init_100us();
+1223   1      
+1224   1          EA = 1;
+1225   1      
+1226   1          load_settings_from_eeprom();
+1227   1      
+1228   1          send_startup_hi();
+1229   1      
+1230   1          while (1) {
+1231   2              update_buttons();
+1232   2      
+C51 COMPILER V9.53.0.0   MAIN                                                              04/27/2026 11:44:43 PAGE 21  
+
+1233   2              handle_adjust_buttons();
+1234   2              handle_auto_message();
+1235   2              handle_keyer();
+1236   2              handle_eeprom_save();
+1237   2          }
+1238   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   2532    ----
+   CONSTANT SIZE    =    125    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     65      33
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

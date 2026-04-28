@@ -1,0 +1,1230 @@
+BL51 BANKED LINKER/LOCATER V6.22                                                        04/27/2026  11:44:43  PAGE 1
+
+
+BL51 BANKED LINKER/LOCATER V6.22, INVOKED BY:
+C:\KEIL_V5\C51\BIN\BL51.EXE .\Objects\STARTUP.obj, .\Objects\main.obj TO .\Objects\main PRINT (.\Listings\main.m51) RAMS
+>> IZE (256)
+
+
+MEMORY MODEL: SMALL
+
+
+INPUT MODULES INCLUDED:
+  .\Objects\STARTUP.obj (?C_STARTUP)
+  .\Objects\main.obj (MAIN)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C_INIT)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?IMUL)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?UIDIV)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?ULCMP)
+  C:\KEIL_V5\C51\LIB\C51S.LIB (?C?LIMUL)
+
+
+LINK MAP OF MODULE:  .\Objects\main (?C_STARTUP)
+
+
+            TYPE    BASE      LENGTH    RELOCATION   SEGMENT NAME
+            -----------------------------------------------------
+
+            * * * * * * *   D A T A   M E M O R Y   * * * * * * *
+            REG     0000H     0008H     ABSOLUTE     "REG BANK 0"
+            DATA    0008H     0041H     UNIT         ?DT?MAIN
+            DATA    0049H     0009H     UNIT         _DATA_GROUP_
+            IDATA   0052H     0001H     UNIT         ?STACK
+
+            * * * * * * *   C O D E   M E M O R Y   * * * * * * *
+            CODE    0000H     0003H     ABSOLUTE     
+            CODE    0003H     0008H     UNIT         ?PR?_EEPROM_CHECKSUM?MAIN
+            CODE    000BH     0003H     ABSOLUTE     
+            CODE    000EH     01D9H     UNIT         ?PR?HANDLE_ADJUST_BUTTONS?MAIN
+            CODE    01E7H     011CH     UNIT         ?PR?UPDATE_BUTTONS?MAIN
+            CODE    0303H     00F5H     UNIT         ?PR?HANDLE_KEYER?MAIN
+            CODE    03F8H     00A5H     UNIT         ?C?LIB_CODE
+            CODE    049DH     00A4H     UNIT         ?PR?AUTO_MESSAGE_NEXT_SYMBOL?MAIN
+            CODE    0541H     008CH     UNIT         ?C_C51STARTUP
+            CODE    05CDH     0089H     UNIT         ?PR?TIMER0_ISR?MAIN
+            CODE    0656H     0088H     UNIT         ?PR?LOAD_SETTINGS_FROM_EEPROM?MAIN
+            CODE    06DEH     0082H     UNIT         ?C_INITSEG
+            CODE    0760H     007DH     UNIT         ?CO?MAIN
+            CODE    07DDH     007AH     UNIT         ?PR?HANDLE_AUTO_MESSAGE?MAIN
+            CODE    0857H     0063H     UNIT         ?PR?_CHANGE_TONE?MAIN
+            CODE    08BAH     0040H     UNIT         ?PR?SEND_STARTUP_HI?MAIN
+            CODE    08FAH     0037H     UNIT         ?PR?_START_ADJUST_TONE_DOT?MAIN
+            CODE    0931H     0034H     UNIT         ?PR?HANDLE_EEPROM_SAVE?MAIN
+            CODE    0965H     0031H     UNIT         ?PR?_DELAY_MS_BLOCKING?MAIN
+            CODE    0996H     0031H     UNIT         ?PR?_START_ADJUST_SPEED_DOT?MAIN
+            CODE    09C7H     0030H     UNIT         ?PR?START_DOT?MAIN
+            CODE    09F7H     0030H     UNIT         ?PR?START_DASH?MAIN
+            CODE    0A27H     002CH     UNIT         ?PR?SAVE_SETTINGS_TO_EEPROM?MAIN
+            CODE    0A53H     0026H     UNIT         ?PR?_CHANGE_SPEED?MAIN
+            CODE    0A79H     001FH     UNIT         ?PR?MAIN?MAIN
+            CODE    0A98H     001DH     UNIT         ?PR?PINS_INIT?MAIN
+            CODE    0AB5H     0019H     UNIT         ?PR?GET_ADJUST_DIRECTION?MAIN
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 2
+
+
+            CODE    0ACEH     0018H     UNIT         ?PR?MILLIS?MAIN
+            CODE    0AE6H     0018H     UNIT         ?PR?_IAP_READ_BYTE?MAIN
+            CODE    0AFEH     0017H     UNIT         ?PR?_IAP_PROGRAM_BYTE?MAIN
+            CODE    0B15H     0015H     UNIT         ?PR?_IAP_ERASE_SECTOR?MAIN
+            CODE    0B2AH     0013H     UNIT         ?PR?AUTO_MESSAGE_STOP?MAIN
+            CODE    0B3DH     0013H     UNIT         ?PR?_AUTO_MESSAGE_START?MAIN
+            CODE    0B50H     0012H     UNIT         ?PR?TONE_ON?MAIN
+            CODE    0B62H     0012H     UNIT         ?PR?SEND_STARTUP_TONE_DOT?MAIN
+            CODE    0B74H     0011H     UNIT         ?PR?TIMER0_INIT_100US?MAIN
+            CODE    0B85H     000FH     UNIT         ?PR?SCHEDULE_SETTINGS_SAVE?MAIN
+            CODE    0B94H     000DH     UNIT         ?PR?GET_DOT_MS?MAIN
+            CODE    0BA1H     000DH     UNIT         ?PR?IAP_IDLE?MAIN
+            CODE    0BAEH     000DH     UNIT         ?PR?STOP_KEYER_KEEP_TONE?MAIN
+            CODE    0BBBH     000BH     UNIT         ?PR?GET_DASH_MS?MAIN
+            CODE    0BC6H     000AH     UNIT         ?PR?TONE_OFF?MAIN
+            CODE    0BD0H     000AH     UNIT         ?PR?_TONE_INDEX_TO_HZ?MAIN
+            CODE    0BDAH     000AH     UNIT         ?PR?GET_ADJUST_MODE?MAIN
+            CODE    0BE4H     000AH     UNIT         ?PR?_APPLY_ADJUSTMENT?MAIN
+            CODE    0BEEH     0008H     UNIT         ?PR?_TONE_HZ_TO_INDEX?MAIN
+            CODE    0BF6H     0007H     UNIT         ?PR?TIMER0_LOAD?MAIN
+            CODE    0BFDH     0007H     UNIT         ?PR?STOP_KEYER?MAIN
+            CODE    0C04H     0005H     UNIT         ?PR?KEY_DOWN?MAIN
+            CODE    0C09H     0005H     UNIT         ?PR?KEY_UP?MAIN
+            CODE    0C0EH     0005H     UNIT         ?PR?_EEPROM_OLD_CHECKSUM?MAIN
+            CODE    0C13H     0004H     UNIT         ?PR?GET_GAP_MS?MAIN
+            CODE    0C17H     0003H     UNIT         ?PR?KEY_OUTPUT_OFF_ONLY?MAIN
+
+
+
+OVERLAY MAP OF MODULE:   .\Objects\main (?C_STARTUP)
+
+
+SEGMENT                                      DATA_GROUP 
+  +--> CALLED SEGMENT                      START    LENGTH
+----------------------------------------------------------
+?C_C51STARTUP                              -----    -----
+  +--> ?PR?MAIN?MAIN
+  +--> ?C_INITSEG
+
+?PR?MAIN?MAIN                              -----    -----
+  +--> ?PR?PINS_INIT?MAIN
+  +--> ?PR?TIMER0_INIT_100US?MAIN
+  +--> ?PR?LOAD_SETTINGS_FROM_EEPROM?MAIN
+  +--> ?PR?SEND_STARTUP_HI?MAIN
+  +--> ?PR?UPDATE_BUTTONS?MAIN
+  +--> ?PR?HANDLE_ADJUST_BUTTONS?MAIN
+  +--> ?PR?HANDLE_AUTO_MESSAGE?MAIN
+  +--> ?PR?HANDLE_KEYER?MAIN
+  +--> ?PR?HANDLE_EEPROM_SAVE?MAIN
+
+?PR?TIMER0_INIT_100US?MAIN                 -----    -----
+  +--> ?PR?TIMER0_LOAD?MAIN
+
+?PR?LOAD_SETTINGS_FROM_EEPROM?MAIN         0049H    0003H
+  +--> ?PR?_IAP_READ_BYTE?MAIN
+  +--> ?PR?_EEPROM_CHECKSUM?MAIN
+  +--> ?PR?_TONE_INDEX_TO_HZ?MAIN
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 3
+
+
+  +--> ?PR?SCHEDULE_SETTINGS_SAVE?MAIN
+  +--> ?PR?_EEPROM_OLD_CHECKSUM?MAIN
+
+?PR?_IAP_READ_BYTE?MAIN                    -----    -----
+  +--> ?PR?IAP_IDLE?MAIN
+
+?PR?SCHEDULE_SETTINGS_SAVE?MAIN            -----    -----
+  +--> ?PR?MILLIS?MAIN
+
+?PR?MILLIS?MAIN                            -----    -----
+  +--> ?PR?_APPLY_ADJUSTMENT?MAIN
+  +--> ?PR?TONE_ON?MAIN
+
+?PR?_APPLY_ADJUSTMENT?MAIN                 -----    -----
+  +--> ?PR?_CHANGE_TONE?MAIN
+  +--> ?PR?_CHANGE_SPEED?MAIN
+
+?PR?TONE_ON?MAIN                           -----    -----
+  +--> ?PR?TONE_OFF?MAIN
+
+?PR?SEND_STARTUP_HI?MAIN                   0049H    0001H
+  +--> ?PR?_DELAY_MS_BLOCKING?MAIN
+  +--> ?PR?SEND_STARTUP_TONE_DOT?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+  +--> ?PR?TONE_OFF?MAIN
+
+?PR?_DELAY_MS_BLOCKING?MAIN                004AH    0004H
+  +--> ?PR?MILLIS?MAIN
+
+?PR?SEND_STARTUP_TONE_DOT?MAIN             -----    -----
+  +--> ?PR?TONE_ON?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+  +--> ?PR?_DELAY_MS_BLOCKING?MAIN
+  +--> ?PR?TONE_OFF?MAIN
+  +--> ?PR?GET_GAP_MS?MAIN
+
+?PR?GET_GAP_MS?MAIN                        -----    -----
+  +--> ?PR?GET_DOT_MS?MAIN
+
+?PR?UPDATE_BUTTONS?MAIN                    0049H    0008H
+  +--> ?PR?MILLIS?MAIN
+
+?PR?HANDLE_ADJUST_BUTTONS?MAIN             0049H    0005H
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?GET_ADJUST_DIRECTION?MAIN
+  +--> ?PR?AUTO_MESSAGE_STOP?MAIN
+  +--> ?PR?STOP_KEYER_KEEP_TONE?MAIN
+  +--> ?PR?_START_ADJUST_TONE_DOT?MAIN
+  +--> ?CO?MAIN
+  +--> ?PR?_AUTO_MESSAGE_START?MAIN
+  +--> ?PR?TONE_OFF?MAIN
+  +--> ?PR?GET_GAP_MS?MAIN
+  +--> ?PR?_START_ADJUST_SPEED_DOT?MAIN
+
+?PR?AUTO_MESSAGE_STOP?MAIN                 -----    -----
+  +--> ?PR?KEY_UP?MAIN
+
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 4
+
+
+?PR?KEY_UP?MAIN                            -----    -----
+  +--> ?PR?TONE_OFF?MAIN
+
+?PR?STOP_KEYER_KEEP_TONE?MAIN              -----    -----
+  +--> ?PR?AUTO_MESSAGE_STOP?MAIN
+  +--> ?PR?KEY_OUTPUT_OFF_ONLY?MAIN
+
+?PR?_START_ADJUST_TONE_DOT?MAIN            -----    -----
+  +--> ?PR?GET_ADJUST_MODE?MAIN
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+
+?PR?_AUTO_MESSAGE_START?MAIN               -----    -----
+  +--> ?PR?KEY_UP?MAIN
+  +--> ?PR?AUTO_MESSAGE_NEXT_SYMBOL?MAIN
+
+?PR?AUTO_MESSAGE_NEXT_SYMBOL?MAIN          004EH    0004H
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?AUTO_MESSAGE_STOP?MAIN
+  +--> ?PR?KEY_DOWN?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+  +--> ?PR?GET_DASH_MS?MAIN
+  +--> ?PR?KEY_UP?MAIN
+
+?PR?KEY_DOWN?MAIN                          -----    -----
+  +--> ?PR?TONE_ON?MAIN
+
+?PR?GET_DASH_MS?MAIN                       -----    -----
+  +--> ?PR?GET_DOT_MS?MAIN
+
+?PR?_START_ADJUST_SPEED_DOT?MAIN           -----    -----
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+
+?PR?HANDLE_AUTO_MESSAGE?MAIN               0049H    0004H
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?KEY_UP?MAIN
+  +--> ?PR?GET_GAP_MS?MAIN
+  +--> ?PR?AUTO_MESSAGE_NEXT_SYMBOL?MAIN
+  +--> ?PR?AUTO_MESSAGE_STOP?MAIN
+
+?PR?HANDLE_KEYER?MAIN                      0049H    0004H
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?STOP_KEYER_KEEP_TONE?MAIN
+  +--> ?PR?KEY_UP?MAIN
+  +--> ?PR?GET_GAP_MS?MAIN
+  +--> ?PR?START_DASH?MAIN
+  +--> ?PR?START_DOT?MAIN
+  +--> ?PR?STOP_KEYER?MAIN
+
+?PR?START_DASH?MAIN                        -----    -----
+  +--> ?PR?KEY_DOWN?MAIN
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?GET_DASH_MS?MAIN
+
+?PR?START_DOT?MAIN                         -----    -----
+  +--> ?PR?KEY_DOWN?MAIN
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 5
+
+
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?GET_DOT_MS?MAIN
+
+?PR?STOP_KEYER?MAIN                        -----    -----
+  +--> ?PR?KEY_UP?MAIN
+
+?PR?HANDLE_EEPROM_SAVE?MAIN                -----    -----
+  +--> ?PR?MILLIS?MAIN
+  +--> ?PR?SAVE_SETTINGS_TO_EEPROM?MAIN
+
+?PR?SAVE_SETTINGS_TO_EEPROM?MAIN           -----    -----
+  +--> ?PR?_TONE_HZ_TO_INDEX?MAIN
+  +--> ?PR?_IAP_ERASE_SECTOR?MAIN
+  +--> ?PR?_IAP_PROGRAM_BYTE?MAIN
+  +--> ?PR?_EEPROM_CHECKSUM?MAIN
+
+?PR?_IAP_ERASE_SECTOR?MAIN                 -----    -----
+  +--> ?PR?IAP_IDLE?MAIN
+
+?PR?_IAP_PROGRAM_BYTE?MAIN                 -----    -----
+  +--> ?PR?IAP_IDLE?MAIN
+
+*** NEW ROOT ***************************************************
+
+?PR?TIMER0_ISR?MAIN                        -----    -----
+  +--> ?PR?TIMER0_LOAD?MAIN
+
+
+
+SYMBOL TABLE OF MODULE:  .\Objects\main (?C_STARTUP)
+
+  VALUE           TYPE          NAME
+  ----------------------------------
+
+  -------         MODULE        ?C_STARTUP
+  C:0541H         SEGMENT       ?C_C51STARTUP
+  I:0052H         SEGMENT       ?STACK
+  C:0000H         PUBLIC        ?C_STARTUP
+  D:00E0H         SYMBOL        ACC
+  D:00F0H         SYMBOL        B
+  D:0083H         SYMBOL        DPH
+  D:0082H         SYMBOL        DPL
+  N:0000H         SYMBOL        IBPSTACK
+  N:0100H         SYMBOL        IBPSTACKTOP
+  N:0080H         SYMBOL        IDATALEN
+  C:0544H         SYMBOL        IDATALOOP
+  N:0000H         SYMBOL        PBPSTACK
+  N:0100H         SYMBOL        PBPSTACKTOP
+  N:0000H         SYMBOL        PDATALEN
+  N:0000H         SYMBOL        PDATASTART
+  N:0000H         SYMBOL        PPAGE
+  N:0000H         SYMBOL        PPAGEENABLE
+  D:00A0H         SYMBOL        PPAGE_SFR
+  D:0081H         SYMBOL        SP
+  C:0541H         SYMBOL        STARTUP1
+  N:0000H         SYMBOL        XBPSTACK
+  N:0000H         SYMBOL        XBPSTACKTOP
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 6
+
+
+  N:0000H         SYMBOL        XDATALEN
+  N:0000H         SYMBOL        XDATASTART
+  C:0000H         LINE#         126
+  C:0541H         LINE#         133
+  C:0543H         LINE#         134
+  C:0544H         LINE#         135
+  C:0545H         LINE#         136
+  C:0547H         LINE#         185
+  C:054AH         LINE#         196
+  -------         ENDMOD        ?C_STARTUP
+
+  -------         MODULE        MAIN
+  C:0000H         SYMBOL        _ICE_DUMMY_
+  D:00B2H         PUBLIC        P3M0
+  D:000EH         PUBLIC        dashStable
+  D:00B1H         PUBLIC        P3M1
+  C:0857H         PUBLIC        _change_tone
+  C:0965H         PUBLIC        _delay_ms_blocking
+  D:00CAH         PUBLIC        P5M0
+  D:00B0H         PUBLIC        P3
+  D:00C9H         PUBLIC        P5M1
+  C:05CDH         PUBLIC        timer0_isr
+  D:00C8H         PUBLIC        P5
+  C:0BBBH         PUBLIC        get_dash_ms
+  B:00A8H.7       PUBLIC        EA
+  D:000FH         PUBLIC        upLastChangeMs
+  D:0013H         PUBLIC        dotLastRaw
+  D:0014H         PUBLIC        autoUntilMs
+  C:0AD9H         PUBLIC        millis
+  D:0018H         PUBLIC        tick100usCounter
+  D:00C5H         PUBLIC        IAP_CMD
+  C:0C09H         PUBLIC        key_up
+  D:0019H         PUBLIC        adjustState
+  D:001AH         PUBLIC        adjustMode
+  C:0B3DH         PUBLIC        _auto_message_start
+  B:00C8H.4       PUBLIC        DASH_IN
+  D:001BH         PUBLIC        downStable
+  C:0C13H         PUBLIC        get_gap_ms
+  D:001CH         PUBLIC        autoMsgPtr
+  B:00B0H.1       PUBLIC        UP_IN
+  D:00C3H         PUBLIC        IAP_ADDRH
+  C:049DH         PUBLIC        auto_message_next_symbol
+  C:0C17H         PUBLIC        key_output_off_only
+  C:0B15H         PUBLIC        _iap_erase_sector
+  D:00C4H         PUBLIC        IAP_ADDRL
+  D:001EH         PUBLIC        lastSettingChangeMs
+  C:0A79H         PUBLIC        main
+  D:0022H         PUBLIC        keyerState
+  D:0023H         PUBLIC        dotStable
+  D:0024H         PUBLIC        g_ms
+  D:0028H         PUBLIC        upLastRaw
+  C:0B94H         PUBLIC        get_dot_ms
+  C:0B2AH         PUBLIC        auto_message_stop
+  C:0AFEH         PUBLIC        _iap_program_byte
+  B:00B0H.0       PUBLIC        DOWN_IN
+  C:07BAH         PUBLIC        MSG_73
+  C:09F7H         PUBLIC        start_dash
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 7
+
+
+  D:0089H         PUBLIC        TMOD
+  D:0029H         PUBLIC        adjustDirection
+  C:0BDAH         PUBLIC        get_adjust_mode
+  C:0A27H         PUBLIC        save_settings_to_eeprom
+  C:0BD0H         PUBLIC        _tone_index_to_hz
+  C:0BEEH         PUBLIC        _tone_hz_to_index
+  C:0BA1H         PUBLIC        iap_idle
+  C:0B85H         PUBLIC        schedule_settings_save
+  C:0996H         PUBLIC        _start_adjust_speed_dot
+  D:002AH         PUBLIC        autoState
+  D:002BH         PUBLIC        toneAcc
+  D:008EH         PUBLIC        AUXR
+  B:00B0H.3       PUBLIC        KEY_OUT
+  D:00C7H         PUBLIC        IAP_CONTR
+  C:0003H         PUBLIC        _eeprom_checksum
+  D:002DH         PUBLIC        dashLastChangeMs
+  D:0031H         PUBLIC        upStable
+  C:0B74H         PUBLIC        timer0_init_100us
+  B:00A8H.1       PUBLIC        ET0
+  D:0032H         PUBLIC        speedWpm
+  C:0BFDH         PUBLIC        stop_keyer
+  D:008CH         PUBLIC        TH0
+  C:0BE4H         PUBLIC        _apply_adjustment
+  D:008AH         PUBLIC        TL0
+  C:0AE6H         PUBLIC        _iap_read_byte
+  C:0A98H         PUBLIC        pins_init
+  C:000EH         PUBLIC        handle_adjust_buttons
+  C:0BC6H         PUBLIC        tone_off
+  C:07DDH         PUBLIC        handle_auto_message
+  D:00C2H         PUBLIC        IAP_DATA
+  B:0088H.4       PUBLIC        TR0
+  C:08BAH         PUBLIC        send_startup_hi
+  C:0BF6H         PUBLIC        timer0_load
+  C:0AB5H         PUBLIC        get_adjust_direction
+  C:09C7H         PUBLIC        start_dot
+  C:0760H         PUBLIC        MSG_CQ
+  D:0033H         PUBLIC        downLastChangeMs
+  C:0A53H         PUBLIC        _change_speed
+  B:00C8H.5       PUBLIC        DOT_IN
+  D:0037H         PUBLIC        adjustUntilMs
+  B:00B0H.2       PUBLIC        PIEZO_OUT
+  C:08FAH         PUBLIC        _start_adjust_tone_dot
+  C:0C04H         PUBLIC        key_down
+  D:003BH         PUBLIC        dashLastRaw
+  C:0C0EH         PUBLIC        _eeprom_old_checksum
+  C:0B62H         PUBLIC        send_startup_tone_dot
+  D:003CH         PUBLIC        eepromSavePending
+  D:003DH         PUBLIC        toneEnabled
+  D:003EH         PUBLIC        dotLastChangeMs
+  C:0BB4H         PUBLIC        stop_keyer_keep_tone
+  C:0931H         PUBLIC        handle_eeprom_save
+  D:00C6H         PUBLIC        IAP_TRIG
+  C:0303H         PUBLIC        handle_keyer
+  D:0042H         PUBLIC        keyerUntilMs
+  C:0B50H         PUBLIC        tone_on
+  C:01E7H         PUBLIC        update_buttons
+  D:0046H         PUBLIC        toneHz
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 8
+
+
+  C:0656H         PUBLIC        load_settings_from_eeprom
+  D:0048H         PUBLIC        downLastRaw
+  -------         PROC          GET_DOT_MS
+  C:0B94H         LINE#         245
+  C:0B94H         LINE#         246
+  C:0BA0H         LINE#         247
+  -------         ENDPROC       GET_DOT_MS
+  -------         PROC          GET_DASH_MS
+  C:0BBBH         LINE#         249
+  C:0BBBH         LINE#         250
+  C:0BC5H         LINE#         251
+  -------         ENDPROC       GET_DASH_MS
+  -------         PROC          GET_GAP_MS
+  C:0C13H         LINE#         253
+  C:0C13H         LINE#         254
+  C:0C16H         LINE#         255
+  -------         ENDPROC       GET_GAP_MS
+  -------         PROC          TIMER0_LOAD
+  C:0BF6H         LINE#         257
+  C:0BF6H         LINE#         258
+  C:0BF9H         LINE#         259
+  C:0BFCH         LINE#         260
+  -------         ENDPROC       TIMER0_LOAD
+  -------         PROC          TIMER0_INIT_100US
+  C:0B74H         LINE#         262
+  C:0B74H         LINE#         263
+  C:0B77H         LINE#         264
+  C:0B7AH         LINE#         269
+  C:0B7DH         LINE#         271
+  C:0B80H         LINE#         273
+  C:0B82H         LINE#         274
+  C:0B84H         LINE#         275
+  -------         ENDPROC       TIMER0_INIT_100US
+  -------         PROC          TIMER0_ISR
+  C:05CDH         LINE#         277
+  C:05DCH         LINE#         278
+  C:05DFH         LINE#         284
+  C:05E1H         LINE#         286
+  C:05E8H         LINE#         287
+  C:05EBH         LINE#         288
+  C:0604H         LINE#         289
+  C:0604H         LINE#         291
+  C:0613H         LINE#         292
+  C:0626H         LINE#         294
+  C:0631H         LINE#         295
+  C:063DH         LINE#         296
+  C:063FH         LINE#         297
+  C:063FH         LINE#         298
+  C:0641H         LINE#         299
+  C:0647H         LINE#         300
+  C:0649H         LINE#         301
+  C:0649H         LINE#         302
+  -------         ENDPROC       TIMER0_ISR
+  -------         PROC          L?0211
+  -------         ENDPROC       L?0211
+  -------         PROC          MILLIS
+  -------         DO            
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 9
+
+
+  D:0004H         SYMBOL        value
+  -------         ENDDO         
+  C:0AD9H         LINE#         304
+  C:0AD9H         LINE#         307
+  C:0ADBH         LINE#         308
+  C:0AE3H         LINE#         309
+  C:0AE5H         LINE#         311
+  C:0AE5H         LINE#         312
+  -------         ENDPROC       MILLIS
+  -------         PROC          _DELAY_MS_BLOCKING
+  D:0082H         SYMBOL        ms
+  -------         DO            
+  D:004AH         SYMBOL        start
+  -------         ENDDO         
+  C:0965H         LINE#         314
+  C:0969H         LINE#         315
+  C:0974H         LINE#         317
+  C:0995H         LINE#         318
+  C:0995H         LINE#         319
+  -------         ENDPROC       _DELAY_MS_BLOCKING
+  -------         PROC          TONE_OFF
+  C:0BC6H         LINE#         321
+  C:0BC6H         LINE#         322
+  C:0BC9H         LINE#         323
+  C:0BCDH         LINE#         324
+  C:0BCFH         LINE#         325
+  -------         ENDPROC       TONE_OFF
+  -------         PROC          TONE_ON
+  C:0B50H         LINE#         327
+  C:0B50H         LINE#         328
+  C:0B56H         LINE#         329
+  C:0B59H         LINE#         331
+  C:0B59H         LINE#         333
+  C:0B5EH         LINE#         334
+  C:0B61H         LINE#         335
+  -------         ENDPROC       TONE_ON
+  -------         PROC          KEY_DOWN
+  C:0C04H         LINE#         337
+  C:0C04H         LINE#         338
+  C:0C06H         LINE#         339
+  -------         ENDPROC       KEY_DOWN
+  -------         PROC          KEY_UP
+  C:0C09H         LINE#         342
+  C:0C09H         LINE#         343
+  C:0C0BH         LINE#         344
+  -------         ENDPROC       KEY_UP
+  -------         PROC          KEY_OUTPUT_OFF_ONLY
+  C:0C17H         LINE#         347
+  C:0C17H         LINE#         348
+  C:0C19H         LINE#         349
+  -------         ENDPROC       KEY_OUTPUT_OFF_ONLY
+  -------         PROC          IAP_IDLE
+  C:0BA1H         LINE#         353
+  C:0BA1H         LINE#         354
+  C:0BA4H         LINE#         355
+  C:0BA6H         LINE#         356
+  C:0BA8H         LINE#         357
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 10
+
+
+  C:0BABH         LINE#         358
+  C:0BADH         LINE#         359
+  -------         ENDPROC       IAP_IDLE
+  -------         PROC          _IAP_READ_BYTE
+  D:0006H         SYMBOL        addr
+  -------         DO            
+  D:0007H         SYMBOL        value
+  -------         ENDDO         
+  C:0AE6H         LINE#         361
+  C:0AE6H         LINE#         364
+  C:0AE9H         LINE#         365
+  C:0AECH         LINE#         366
+  C:0AEFH         LINE#         367
+  C:0AF1H         LINE#         369
+  C:0AF4H         LINE#         370
+  C:0AF7H         LINE#         371
+  C:0AF8H         LINE#         373
+  C:0AFAH         LINE#         375
+  C:0AFDH         LINE#         377
+  C:0AFDH         LINE#         378
+  -------         ENDPROC       _IAP_READ_BYTE
+  -------         PROC          _IAP_PROGRAM_BYTE
+  D:0006H         SYMBOL        addr
+  D:0005H         SYMBOL        value
+  C:0AFEH         LINE#         380
+  C:0AFEH         LINE#         381
+  C:0B01H         LINE#         382
+  C:0B04H         LINE#         383
+  C:0B07H         LINE#         384
+  C:0B09H         LINE#         385
+  C:0B0BH         LINE#         387
+  C:0B0EH         LINE#         388
+  C:0B11H         LINE#         389
+  C:0B12H         LINE#         391
+  -------         ENDPROC       _IAP_PROGRAM_BYTE
+  -------         PROC          _IAP_ERASE_SECTOR
+  D:0006H         SYMBOL        addr
+  C:0B15H         LINE#         394
+  C:0B15H         LINE#         395
+  C:0B18H         LINE#         396
+  C:0B1BH         LINE#         397
+  C:0B1EH         LINE#         398
+  C:0B20H         LINE#         400
+  C:0B23H         LINE#         401
+  C:0B26H         LINE#         402
+  C:0B27H         LINE#         404
+  -------         ENDPROC       _IAP_ERASE_SECTOR
+  -------         PROC          _EEPROM_OLD_CHECKSUM
+  D:0007H         SYMBOL        wpm
+  C:0C0EH         LINE#         407
+  C:0C0EH         LINE#         408
+  C:0C12H         LINE#         409
+  -------         ENDPROC       _EEPROM_OLD_CHECKSUM
+  -------         PROC          _EEPROM_CHECKSUM
+  D:0007H         SYMBOL        wpm
+  D:0005H         SYMBOL        toneIndex
+  C:0003H         LINE#         411
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 11
+
+
+  C:0003H         LINE#         412
+  C:000AH         LINE#         413
+  -------         ENDPROC       _EEPROM_CHECKSUM
+  -------         PROC          _TONE_HZ_TO_INDEX
+  D:0006H         SYMBOL        hz
+  C:0BEEH         LINE#         415
+  C:0BEEH         LINE#         416
+  C:0BF5H         LINE#         417
+  -------         ENDPROC       _TONE_HZ_TO_INDEX
+  -------         PROC          _TONE_INDEX_TO_HZ
+  D:0007H         SYMBOL        index
+  C:0BD0H         LINE#         419
+  C:0BD0H         LINE#         420
+  C:0BD9H         LINE#         421
+  -------         ENDPROC       _TONE_INDEX_TO_HZ
+  -------         PROC          LOAD_SETTINGS_FROM_EEPROM
+  -------         DO            
+  D:0049H         SYMBOL        magic
+  D:004AH         SYMBOL        savedWpm
+  D:004BH         SYMBOL        savedToneIndex
+  D:0006H         SYMBOL        savedCheck
+  -------         ENDDO         
+  C:0656H         LINE#         423
+  C:0656H         LINE#         429
+  C:065EH         LINE#         430
+  C:0665H         LINE#         431
+  C:066CH         LINE#         432
+  C:0673H         LINE#         439
+  C:0698H         LINE#         443
+  C:0698H         LINE#         445
+  C:069BH         LINE#         446
+  C:06A4H         LINE#         448
+  C:06AAH         LINE#         449
+  C:06B0H         LINE#         450
+  C:06B3H         LINE#         451
+  C:06B3H         LINE#         454
+  C:06B3H         LINE#         460
+  C:06CFH         LINE#         463
+  C:06CFH         LINE#         465
+  C:06D2H         LINE#         466
+  C:06D4H         LINE#         468
+  C:06D4H         LINE#         470
+  C:06D7H         LINE#         471
+  C:06DDH         LINE#         472
+  -------         ENDPROC       LOAD_SETTINGS_FROM_EEPROM
+  -------         PROC          SCHEDULE_SETTINGS_SAVE
+  C:0B85H         LINE#         474
+  C:0B85H         LINE#         475
+  C:0B88H         LINE#         476
+  C:0B93H         LINE#         477
+  -------         ENDPROC       SCHEDULE_SETTINGS_SAVE
+  -------         PROC          SAVE_SETTINGS_TO_EEPROM
+  -------         DO            
+  D:0004H         SYMBOL        toneIndex
+  -------         ENDDO         
+  C:0A27H         LINE#         479
+  C:0A27H         LINE#         482
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 12
+
+
+  C:0A30H         LINE#         487
+  C:0A36H         LINE#         489
+  C:0A3BH         LINE#         490
+  C:0A41H         LINE#         491
+  C:0A47H         LINE#         492
+  -------         ENDPROC       SAVE_SETTINGS_TO_EEPROM
+  -------         PROC          HANDLE_EEPROM_SAVE
+  C:0931H         LINE#         495
+  C:0931H         LINE#         496
+  C:0935H         LINE#         498
+  C:0935H         LINE#         504
+  C:093DH         LINE#         506
+  C:093DH         LINE#         508
+  C:095EH         LINE#         509
+  C:0961H         LINE#         510
+  C:0964H         LINE#         511
+  C:0964H         LINE#         512
+  -------         ENDPROC       HANDLE_EEPROM_SAVE
+  -------         PROC          PINS_INIT
+  C:0A98H         LINE#         516
+  C:0A98H         LINE#         529
+  C:0A9BH         LINE#         530
+  C:0A9EH         LINE#         535
+  C:0AA1H         LINE#         536
+  C:0AA4H         LINE#         537
+  C:0AA7H         LINE#         542
+  C:0AAAH         LINE#         543
+  C:0AADH         LINE#         544
+  C:0AB0H         LINE#         546
+  C:0AB2H         LINE#         547
+  C:0AB4H         LINE#         548
+  -------         ENDPROC       PINS_INIT
+  -------         PROC          UPDATE_BUTTONS
+  -------         DO            
+  D:0049H         SYMBOL        now
+  D:004DH         SYMBOL        dotRaw
+  D:004EH         SYMBOL        dashRaw
+  D:004FH         SYMBOL        downRaw
+  D:0050H         SYMBOL        upRaw
+  -------         ENDDO         
+  C:01E7H         LINE#         552
+  C:01E7H         LINE#         553
+  C:01F2H         LINE#         560
+  C:01FDH         LINE#         561
+  C:0208H         LINE#         562
+  C:0213H         LINE#         563
+  C:021EH         LINE#         565
+  C:0224H         LINE#         566
+  C:0227H         LINE#         567
+  C:0233H         LINE#         568
+  C:0233H         LINE#         570
+  C:0254H         LINE#         571
+  C:0257H         LINE#         572
+  C:0257H         LINE#         574
+  C:025DH         LINE#         575
+  C:0260H         LINE#         576
+  C:026CH         LINE#         577
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 13
+
+
+  C:026CH         LINE#         579
+  C:028DH         LINE#         580
+  C:0290H         LINE#         581
+  C:0290H         LINE#         583
+  C:0296H         LINE#         584
+  C:0299H         LINE#         585
+  C:02A5H         LINE#         586
+  C:02A5H         LINE#         588
+  C:02C6H         LINE#         589
+  C:02C9H         LINE#         590
+  C:02C9H         LINE#         592
+  C:02CFH         LINE#         593
+  C:02D2H         LINE#         594
+  C:02DEH         LINE#         595
+  C:02DEH         LINE#         597
+  C:02FFH         LINE#         598
+  C:0302H         LINE#         599
+  C:0302H         LINE#         600
+  -------         ENDPROC       UPDATE_BUTTONS
+  -------         PROC          SEND_STARTUP_TONE_DOT
+  C:0B62H         LINE#         604
+  C:0B62H         LINE#         605
+  C:0B65H         LINE#         606
+  C:0B6BH         LINE#         607
+  C:0B6EH         LINE#         608
+  -------         ENDPROC       SEND_STARTUP_TONE_DOT
+  -------         PROC          SEND_STARTUP_HI
+  -------         DO            
+  D:0049H         SYMBOL        i
+  -------         ENDDO         
+  C:08BAH         LINE#         611
+  C:08BAH         LINE#         622
+  C:08BCH         LINE#         624
+  C:08C3H         LINE#         627
+  C:08C6H         LINE#         628
+  C:08C9H         LINE#         629
+  C:08D2H         LINE#         636
+  C:08DFH         LINE#         639
+  C:08E2H         LINE#         640
+  C:08E5H         LINE#         641
+  C:08EEH         LINE#         643
+  C:08F1H         LINE#         644
+  C:08F3H         LINE#         646
+  -------         ENDPROC       SEND_STARTUP_HI
+  -------         PROC          AUTO_MESSAGE_STOP
+  C:0B2AH         LINE#         651
+  C:0B2AH         LINE#         652
+  C:0B2DH         LINE#         654
+  C:0B30H         LINE#         655
+  C:0B34H         LINE#         656
+  C:0B3CH         LINE#         657
+  -------         ENDPROC       AUTO_MESSAGE_STOP
+  -------         PROC          AUTO_MESSAGE_NEXT_SYMBOL
+  -------         DO            
+  D:0007H         SYMBOL        c
+  D:004EH         SYMBOL        now
+  -------         ENDDO         
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 14
+
+
+  C:049DH         LINE#         659
+  C:049DH         LINE#         663
+  C:04A3H         LINE#         664
+  C:04A5H         LINE#         666
+  C:04A5H         LINE#         668
+  C:04A5H         LINE#         669
+  C:04B0H         LINE#         670
+  C:04B9H         LINE#         672
+  C:04BBH         LINE#         673
+  C:04BEH         LINE#         675
+  C:04BEH         LINE#         677
+  C:04C6H         LINE#         679
+  C:04C9H         LINE#         680
+  C:04CCH         LINE#         681
+  C:04CFH         LINE#         682
+  C:04D4H         LINE#         684
+  C:04D4H         LINE#         686
+  C:04D7H         LINE#         687
+  C:04DAH         LINE#         688
+  C:04DDH         LINE#         689
+  C:04F2H         LINE#         691
+  C:04F2H         LINE#         693
+  C:04F5H         LINE#         698
+  C:04F8H         LINE#         699
+  C:04FBH         LINE#         700
+  C:0517H         LINE#         702
+  C:0517H         LINE#         704
+  C:051CH         LINE#         709
+  C:051FH         LINE#         710
+  C:0522H         LINE#         711
+  C:0540H         LINE#         713
+  C:0540H         LINE#         719
+  C:0540H         LINE#         720
+  -------         ENDPROC       AUTO_MESSAGE_NEXT_SYMBOL
+  -------         PROC          _AUTO_MESSAGE_START
+  D:0006H         SYMBOL        msg
+  C:0B3DH         LINE#         722
+  C:0B3DH         LINE#         723
+  C:0B40H         LINE#         725
+  C:0B43H         LINE#         726
+  C:0B45H         LINE#         727
+  C:0B47H         LINE#         729
+  C:0B4BH         LINE#         730
+  C:0B4DH         LINE#         732
+  -------         ENDPROC       _AUTO_MESSAGE_START
+  -------         PROC          HANDLE_AUTO_MESSAGE
+  -------         DO            
+  D:0049H         SYMBOL        now
+  -------         ENDDO         
+  C:07DDH         LINE#         735
+  C:07DDH         LINE#         736
+  C:07E8H         LINE#         738
+  C:07ECH         LINE#         740
+  C:07ECH         LINE#         746
+  C:07F4H         LINE#         747
+  C:07F6H         LINE#         749
+  C:07F6H         LINE#         751
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 15
+
+
+  C:0802H         LINE#         752
+  C:0802H         LINE#         753
+  C:081AH         LINE#         754
+  C:081DH         LINE#         756
+  C:0820H         LINE#         757
+  C:0837H         LINE#         758
+  C:0837H         LINE#         759
+  C:0838H         LINE#         761
+  C:0838H         LINE#         762
+  C:0838H         LINE#         763
+  C:0838H         LINE#         764
+  C:0850H         LINE#         765
+  C:0853H         LINE#         766
+  C:0853H         LINE#         767
+  C:0853H         LINE#         769
+  C:0853H         LINE#         770
+  C:0856H         LINE#         771
+  C:0856H         LINE#         772
+  C:0856H         LINE#         773
+  -------         ENDPROC       HANDLE_AUTO_MESSAGE
+  -------         PROC          START_DOT
+  C:09C7H         LINE#         777
+  C:09C7H         LINE#         778
+  C:09CAH         LINE#         780
+  C:09CDH         LINE#         781
+  C:09F6H         LINE#         782
+  -------         ENDPROC       START_DOT
+  -------         PROC          START_DASH
+  C:09F7H         LINE#         784
+  C:09F7H         LINE#         785
+  C:09FAH         LINE#         787
+  C:09FDH         LINE#         788
+  C:0A26H         LINE#         789
+  -------         ENDPROC       START_DASH
+  -------         PROC          STOP_KEYER
+  C:0BFDH         LINE#         791
+  C:0BFDH         LINE#         792
+  C:0C00H         LINE#         793
+  C:0C03H         LINE#         794
+  -------         ENDPROC       STOP_KEYER
+  -------         PROC          L?0212
+  -------         ENDPROC       L?0212
+  -------         PROC          STOP_KEYER_KEEP_TONE
+  C:0BB4H         LINE#         796
+  C:0BB4H         LINE#         801
+  C:0BB7H         LINE#         802
+  C:0BBAH         LINE#         803
+  -------         ENDPROC       STOP_KEYER_KEEP_TONE
+  -------         PROC          HANDLE_KEYER
+  -------         DO            
+  D:0049H         SYMBOL        now
+  -------         ENDDO         
+  C:0303H         LINE#         805
+  C:0303H         LINE#         806
+  C:030EH         LINE#         811
+  C:0315H         LINE#         813
+  C:0315H         LINE#         821
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 16
+
+
+  C:0321H         LINE#         822
+  C:0324H         LINE#         824
+  C:0324H         LINE#         826
+  C:033CH         LINE#         827
+  C:033CH         LINE#         831
+  C:0340H         LINE#         832
+  C:0340H         LINE#         833
+  C:034AH         LINE#         834
+  C:034AH         LINE#         835
+  C:034AH         LINE#         836
+  C:034DH         LINE#         838
+  C:034DH         LINE#         839
+  C:0368H         LINE#         840
+  C:036BH         LINE#         842
+  C:036EH         LINE#         843
+  C:036EH         LINE#         844
+  C:036EH         LINE#         845
+  C:0370H         LINE#         847
+  C:0370H         LINE#         848
+  C:0388H         LINE#         849
+  C:038CH         LINE#         850
+  C:038CH         LINE#         851
+  C:0392H         LINE#         852
+  C:0392H         LINE#         853
+  C:0394H         LINE#         859
+  C:0394H         LINE#         860
+  C:03ACH         LINE#         861
+  C:03AFH         LINE#         863
+  C:03B2H         LINE#         864
+  C:03C9H         LINE#         865
+  C:03C9H         LINE#         866
+  C:03CAH         LINE#         868
+  C:03CAH         LINE#         869
+  C:03E2H         LINE#         870
+  C:03E6H         LINE#         871
+  C:03E9H         LINE#         872
+  C:03EDH         LINE#         873
+  C:03F0H         LINE#         874
+  C:03F0H         LINE#         875
+  C:03F3H         LINE#         876
+  C:03F3H         LINE#         877
+  C:03F3H         LINE#         878
+  C:03F4H         LINE#         880
+  C:03F4H         LINE#         881
+  C:03F7H         LINE#         882
+  C:03F7H         LINE#         883
+  C:03F7H         LINE#         884
+  -------         ENDPROC       HANDLE_KEYER
+  -------         PROC          GET_ADJUST_DIRECTION
+  C:0AB5H         LINE#         888
+  C:0AB5H         LINE#         889
+  C:0ABDH         LINE#         890
+  C:0AC0H         LINE#         891
+  C:0AC0H         LINE#         893
+  C:0AC8H         LINE#         894
+  C:0ACBH         LINE#         895
+  C:0ACBH         LINE#         897
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 17
+
+
+  C:0ACDH         LINE#         898
+  -------         ENDPROC       GET_ADJUST_DIRECTION
+  -------         PROC          GET_ADJUST_MODE
+  C:0BDAH         LINE#         900
+  C:0BDAH         LINE#         905
+  C:0BDEH         LINE#         906
+  C:0BE1H         LINE#         907
+  C:0BE1H         LINE#         909
+  C:0BE3H         LINE#         910
+  -------         ENDPROC       GET_ADJUST_MODE
+  -------         PROC          _CHANGE_SPEED
+  D:0007H         SYMBOL        direction
+  C:0A53H         LINE#         912
+  C:0A53H         LINE#         913
+  C:0A5BH         LINE#         914
+  C:0A61H         LINE#         915
+  C:0A63H         LINE#         916
+  C:0A63H         LINE#         917
+  C:0A63H         LINE#         918
+  C:0A6DH         LINE#         919
+  C:0A73H         LINE#         920
+  C:0A75H         LINE#         921
+  C:0A78H         LINE#         922
+  C:0A78H         LINE#         923
+  C:0A78H         LINE#         924
+  -------         ENDPROC       _CHANGE_SPEED
+  -------         PROC          _CHANGE_TONE
+  D:0007H         SYMBOL        direction
+  C:0857H         LINE#         926
+  C:0857H         LINE#         927
+  C:085FH         LINE#         928
+  C:0869H         LINE#         929
+  C:0874H         LINE#         931
+  C:087FH         LINE#         932
+  C:0885H         LINE#         933
+  C:0885H         LINE#         935
+  C:0885H         LINE#         936
+  C:0885H         LINE#         937
+  C:088FH         LINE#         938
+  C:0899H         LINE#         939
+  C:08A3H         LINE#         940
+  C:08AFH         LINE#         941
+  C:08B1H         LINE#         942
+  C:08B6H         LINE#         943
+  C:08B6H         LINE#         945
+  C:08B9H         LINE#         946
+  C:08B9H         LINE#         947
+  C:08B9H         LINE#         948
+  -------         ENDPROC       _CHANGE_TONE
+  -------         PROC          _APPLY_ADJUSTMENT
+  D:0007H         SYMBOL        direction
+  D:0005H         SYMBOL        mode
+  C:0BE4H         LINE#         950
+  C:0BE4H         LINE#         951
+  C:0BE7H         LINE#         952
+  C:0BEAH         LINE#         953
+  C:0BEAH         LINE#         954
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 18
+
+
+  C:0BEDH         LINE#         955
+  C:0BEDH         LINE#         956
+  -------         ENDPROC       _APPLY_ADJUSTMENT
+  -------         PROC          _START_ADJUST_TONE_DOT
+  D:0006H         SYMBOL        direction
+  C:08FAH         LINE#         958
+  C:08FCH         LINE#         967
+  C:08FEH         LINE#         969
+  C:0900H         LINE#         970
+  C:0905H         LINE#         972
+  C:0907H         LINE#         974
+  C:0907H         LINE#         976
+  C:0907H         LINE#         977
+  C:0930H         LINE#         978
+  -------         ENDPROC       _START_ADJUST_TONE_DOT
+  -------         PROC          _START_ADJUST_SPEED_DOT
+  D:0007H         SYMBOL        direction
+  C:0996H         LINE#         980
+  C:0996H         LINE#         985
+  C:0998H         LINE#         987
+  C:099AH         LINE#         988
+  C:099DH         LINE#         990
+  C:099DH         LINE#         992
+  C:099DH         LINE#         994
+  C:099DH         LINE#         995
+  C:09C6H         LINE#         996
+  -------         ENDPROC       _START_ADJUST_SPEED_DOT
+  -------         PROC          HANDLE_ADJUST_BUTTONS
+  -------         DO            
+  D:0049H         SYMBOL        now
+  D:004DH         SYMBOL        direction
+  D:0008H         SYMBOL        activeButton
+  D:0009H         SYMBOL        longMode
+  D:000AH         SYMBOL        pressStartMs
+  -------         ENDDO         
+  C:000EH         LINE#         998
+  C:000EH         LINE#         999
+  C:0019H         LINE#         1018
+  C:001DH         LINE#         1019
+  C:0020H         LINE#         1020
+  C:0022H         LINE#         1022
+  C:002EH         LINE#         1023
+  C:002EH         LINE#         1024
+  C:0033H         LINE#         1026
+  C:003AH         LINE#         1027
+  C:003DH         LINE#         1028
+  C:0040H         LINE#         1029
+  C:0042H         LINE#         1030
+  C:0042H         LINE#         1031
+  C:0044H         LINE#         1033
+  C:0044H         LINE#         1034
+  C:005FH         LINE#         1035
+  C:005FH         LINE#         1036
+  C:005FH         LINE#         1038
+  C:005FH         LINE#         1039
+  C:005FH         LINE#         1040
+  C:005FH         LINE#         1041
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 19
+
+
+  C:0062H         LINE#         1043
+  C:0062H         LINE#         1044
+  C:007DH         LINE#         1045
+  C:0082H         LINE#         1047
+  C:0086H         LINE#         1048
+  C:0089H         LINE#         1049
+  C:0089H         LINE#         1058
+  C:0089H         LINE#         1059
+  C:0089H         LINE#         1060
+  C:0089H         LINE#         1061
+  C:0089H         LINE#         1062
+  C:0089H         LINE#         1063
+  C:008CH         LINE#         1064
+  C:008CH         LINE#         1067
+  C:008CH         LINE#         1073
+  C:0097H         LINE#         1075
+  C:0097H         LINE#         1081
+  C:009BH         LINE#         1082
+  C:009FH         LINE#         1083
+  C:00A2H         LINE#         1084
+  C:00A2H         LINE#         1085
+  C:00A2H         LINE#         1086
+  C:00ABH         LINE#         1087
+  C:00AEH         LINE#         1088
+  C:00B1H         LINE#         1089
+  C:00BDH         LINE#         1090
+  C:00BDH         LINE#         1092
+  C:00BDH         LINE#         1093
+  C:00BDH         LINE#         1098
+  C:00C3H         LINE#         1103
+  C:00C7H         LINE#         1104
+  C:00CBH         LINE#         1105
+  C:00D3H         LINE#         1106
+  C:00DAH         LINE#         1107
+  C:00DAH         LINE#         1108
+  C:00DDH         LINE#         1109
+  C:00E0H         LINE#         1110
+  C:00E2H         LINE#         1111
+  C:00E5H         LINE#         1112
+  C:00E7H         LINE#         1113
+  C:00E7H         LINE#         1115
+  C:00E7H         LINE#         1116
+  C:00EAH         LINE#         1118
+  C:00EAH         LINE#         1124
+  C:00EEH         LINE#         1125
+  C:0113H         LINE#         1127
+  C:0113H         LINE#         1129
+  C:0113H         LINE#         1130
+  C:0113H         LINE#         1131
+  C:0116H         LINE#         1132
+  C:0116H         LINE#         1134
+  C:0119H         LINE#         1135
+  C:011BH         LINE#         1140
+  C:0121H         LINE#         1145
+  C:0125H         LINE#         1146
+  C:0129H         LINE#         1147
+  C:0131H         LINE#         1148
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 20
+
+
+  C:0138H         LINE#         1149
+  C:0138H         LINE#         1150
+  C:013AH         LINE#         1151
+  C:013DH         LINE#         1152
+  C:013FH         LINE#         1153
+  C:0142H         LINE#         1154
+  C:0144H         LINE#         1155
+  C:0144H         LINE#         1157
+  C:0144H         LINE#         1158
+  C:0146H         LINE#         1160
+  C:0146H         LINE#         1166
+  C:014AH         LINE#         1167
+  C:016CH         LINE#         1169
+  C:016CH         LINE#         1171
+  C:016CH         LINE#         1172
+  C:016CH         LINE#         1173
+  C:016FH         LINE#         1174
+  C:016FH         LINE#         1176
+  C:0172H         LINE#         1177
+  C:0174H         LINE#         1178
+  C:0177H         LINE#         1179
+  C:017AH         LINE#         1181
+  C:017AH         LINE#         1187
+  C:0186H         LINE#         1188
+  C:0186H         LINE#         1189
+  C:0186H         LINE#         1190
+  C:0188H         LINE#         1192
+  C:0188H         LINE#         1193
+  C:01A0H         LINE#         1194
+  C:01A3H         LINE#         1195
+  C:01A5H         LINE#         1197
+  C:01A8H         LINE#         1198
+  C:01BFH         LINE#         1199
+  C:01BFH         LINE#         1200
+  C:01C0H         LINE#         1202
+  C:01C0H         LINE#         1203
+  C:01D7H         LINE#         1204
+  C:01DCH         LINE#         1205
+  C:01DCH         LINE#         1206
+  C:01DCH         LINE#         1208
+  C:01DCH         LINE#         1209
+  C:01DFH         LINE#         1210
+  C:01E1H         LINE#         1211
+  C:01E4H         LINE#         1212
+  C:01E6H         LINE#         1213
+  C:01E6H         LINE#         1214
+  C:01E6H         LINE#         1215
+  -------         ENDPROC       HANDLE_ADJUST_BUTTONS
+  -------         PROC          MAIN
+  C:0A79H         LINE#         1219
+  C:0A79H         LINE#         1220
+  C:0A7CH         LINE#         1222
+  C:0A7FH         LINE#         1224
+  C:0A81H         LINE#         1226
+  C:0A84H         LINE#         1228
+  C:0A87H         LINE#         1230
+  C:0A87H         LINE#         1231
+BL51 BANKED LINKER/LOCATER V6.22                                                      04/27/2026  11:44:43  PAGE 21
+
+
+  C:0A8AH         LINE#         1233
+  C:0A8DH         LINE#         1234
+  C:0A90H         LINE#         1235
+  C:0A93H         LINE#         1236
+  C:0A96H         LINE#         1237
+  -------         ENDPROC       MAIN
+  -------         ENDMOD        MAIN
+
+  -------         MODULE        ?C?IMUL
+  C:03F8H         PUBLIC        ?C?IMUL
+  -------         ENDMOD        ?C?IMUL
+
+  -------         MODULE        ?C?UIDIV
+  C:040AH         PUBLIC        ?C?UIDIV
+  -------         ENDMOD        ?C?UIDIV
+
+  -------         MODULE        ?C?ULCMP
+  C:045FH         PUBLIC        ?C?ULCMP
+  -------         ENDMOD        ?C?ULCMP
+
+  -------         MODULE        ?C?LIMUL
+  C:0470H         PUBLIC        ?C?LIMUL
+  -------         ENDMOD        ?C?LIMUL
+
+Program Size: data=83.0 xdata=0 code=3098
+LINK/LOCATE RUN COMPLETE.  0 WARNING(S),  0 ERROR(S)

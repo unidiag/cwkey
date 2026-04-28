@@ -1,4 +1,4 @@
-![CW Key](https://github.com/cwkey/pic.jpg)
+![CW Key](https://github.com/unidiag/cwkey/blob/main/pic.jpg)
 
   Возможности:
   - При включении: `HI` (.... ..) на последней сохранённой скорости

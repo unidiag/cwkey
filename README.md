@@ -14,4 +14,4 @@
 
 ## Demo video
 
-[![CW Key demo](https://img.youtube.com/vi/2q9IQ3F34x0/maxresdefault.jpg)](https://youtu.be/2q9IQ3F34x0)
+[![CW Key demo](https://img.youtube.com/vi/2q9IQ3F34x0/hqdefault.jpg)](https://youtu.be/2q9IQ3F34x0)

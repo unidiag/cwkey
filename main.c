@@ -5,26 +5,44 @@
   STC15W204S CW keyer
   Keil C51
 
-  Pin mapping:
-    P5.5 -> DOT button, active LOW
-    P5.4 -> DASH button, active LOW
+  Physical pin mapping:
+    P5.5 -> paddle input 1, active LOW
+    P5.4 -> paddle input 2, active LOW
+
     P3.3 -> KEY output + onboard LED
     P3.2 -> sidetone output to passive piezo / transistor speaker driver
 
     P3.0 -> DOWN button, active LOW
     P3.1 -> UP button, active LOW
 
+  Paddle layouts:
+
+    RIGHT layout:
+      P5.5 -> DASH
+      P5.4 -> DOT
+
+    LEFT layout:
+      P5.5 -> DOT
+      P5.4 -> DASH
+
   Normal mode:
     Short DOWN -> automatic message: CQ CQ DE EW6ML EW6ML EW6ML K
-    Short UP   -> automatic message: 73!
+    Short UP   -> automatic message: TNX QSO 73
 
     Long DOWN  -> speed DOWN
     Long UP    -> speed UP
 
   Tone adjustment:
-    Hold DASH button P5.4 and press:
+    Hold physical P5.5 and press:
       P3.0 -> tone DOWN
       P3.1 -> tone UP
+
+  Paddle layout switching:
+    Hold physical P5.4 and press:
+      P3.0 -> LEFT layout
+      P3.1 -> RIGHT layout
+
+    Confirmation: 1 second sidetone signal.
 */
 
 typedef unsigned char  u8;
@@ -57,24 +75,36 @@ typedef signed char    s8;
 #define TIMER0_RELOAD       (65536UL - (FOSC_HZ / TIMER0_TICKS_PER_SECOND))
 
 /*
-  EEPROM format:
+  EEPROM format v2:
     byte 0: magic
     byte 1: WPM
     byte 2: tone index:
             0  = buzzer disabled during normal work
             10 = 1000 Hz
             25 = 2500 Hz
-    byte 3: checksum
+    byte 3: paddle layout
+            0 = right hand: P5.5 DASH, P5.4 DOT
+            1 = left hand:  P5.5 DOT,  P5.4 DASH
+    byte 4: checksum
+
+  Old formats are supported:
+    0xC5 -> old WPM only format
+    0xC6 -> previous WPM + tone format
 */
 #define EEPROM_MAGIC_OLD    0xC5
-#define EEPROM_MAGIC        0xC6
+#define EEPROM_MAGIC_V1     0xC6
+#define EEPROM_MAGIC        0xC7
 
 #define EEPROM_ADDR_MAGIC   0x0000
 #define EEPROM_ADDR_WPM     0x0001
 #define EEPROM_ADDR_TONE    0x0002
-#define EEPROM_ADDR_CHECK   0x0003
+#define EEPROM_ADDR_LAYOUT  0x0003
+#define EEPROM_ADDR_CHECK   0x0004
 
 #define EEPROM_SAVE_DELAY_MS 600
+
+#define PADDLE_LAYOUT_RIGHT 0
+#define PADDLE_LAYOUT_LEFT  1
 
 /*
   Automatic messages.
@@ -149,8 +179,8 @@ sbit KEY_OUT   = P3^3;
 sbit DOWN_IN = P3^0;
 sbit UP_IN   = P3^1;
 
-sbit DASH_IN = P5^4;
-sbit DOT_IN  = P5^5;
+sbit P54_IN  = P5^4;
+sbit P55_IN  = P5^5;
 
 volatile u32 g_ms = 0;
 volatile u8 toneEnabled = 0;
@@ -164,23 +194,37 @@ volatile u16 toneAcc = 0;
 
 u8 speedWpm = DEFAULT_WPM;
 u16 toneHz = DEFAULT_TONE_HZ;
+u8 paddleLayout = PADDLE_LAYOUT_RIGHT;
 
 u8 eepromSavePending = 0;
 u32 lastSettingChangeMs = 0;
 
-/* Debounced button states */
+/*
+  Physical debounced paddle states.
+*/
+u8 p54Stable = 0;
+u8 p55Stable = 0;
+
+u8 p54LastRaw = 0;
+u8 p55LastRaw = 0;
+
+u32 p54LastChangeMs = 0;
+u32 p55LastChangeMs = 0;
+
+/*
+  Logical debounced paddle states.
+  These depend on paddleLayout.
+*/
 u8 dotStable = 0;
 u8 dashStable = 0;
+
+/* Debounced UP/DOWN button states */
 u8 downStable = 0;
 u8 upStable = 0;
 
-u8 dotLastRaw = 0;
-u8 dashLastRaw = 0;
 u8 downLastRaw = 0;
 u8 upLastRaw = 0;
 
-u32 dotLastChangeMs = 0;
-u32 dashLastChangeMs = 0;
 u32 downLastChangeMs = 0;
 u32 upLastChangeMs = 0;
 
@@ -239,6 +283,8 @@ void stop_keyer_keep_tone(void);
 void auto_message_start(const char code *msg);
 void auto_message_stop(void);
 void handle_auto_message(void);
+
+void update_buttons(void);
 
 /* ---------- Time and tone ---------- */
 
@@ -408,8 +454,12 @@ u8 eeprom_old_checksum(u8 wpm) {
     return (u8)(EEPROM_MAGIC_OLD ^ wpm ^ 0x5A);
 }
 
-u8 eeprom_checksum(u8 wpm, u8 toneIndex) {
-    return (u8)(EEPROM_MAGIC ^ wpm ^ toneIndex ^ 0x5A);
+u8 eeprom_v1_checksum(u8 wpm, u8 toneIndex) {
+    return (u8)(EEPROM_MAGIC_V1 ^ wpm ^ toneIndex ^ 0x5A);
+}
+
+u8 eeprom_checksum(u8 wpm, u8 toneIndex, u8 layout) {
+    return (u8)(EEPROM_MAGIC ^ wpm ^ toneIndex ^ layout ^ 0x5A);
 }
 
 u8 tone_hz_to_index(u16 hz) {
@@ -424,26 +474,30 @@ void load_settings_from_eeprom(void) {
     u8 magic;
     u8 savedWpm;
     u8 savedToneIndex;
-    u8 savedCheck;
+    u8 byte3;
+    u8 byte4;
 
     magic = iap_read_byte(EEPROM_ADDR_MAGIC);
     savedWpm = iap_read_byte(EEPROM_ADDR_WPM);
     savedToneIndex = iap_read_byte(EEPROM_ADDR_TONE);
-    savedCheck = iap_read_byte(EEPROM_ADDR_CHECK);
+    byte3 = iap_read_byte(EEPROM_ADDR_LAYOUT);
+    byte4 = iap_read_byte(EEPROM_ADDR_CHECK);
 
     /*
-      New format.
-      Tone index 0 is allowed in EEPROM, but at startup it is replaced
-      with DEFAULT_TONE_HZ so the startup greeting always sounds.
+      New v2 format:
+        byte3 = layout
+        byte4 = checksum
     */
     if (magic == EEPROM_MAGIC &&
         savedWpm >= MIN_WPM &&
         savedWpm <= MAX_WPM &&
         savedToneIndex <= (MAX_TONE_HZ / 100) &&
-        savedCheck == eeprom_checksum(savedWpm, savedToneIndex)) {
+        byte3 <= PADDLE_LAYOUT_LEFT &&
+        byte4 == eeprom_checksum(savedWpm, savedToneIndex, byte3)) {
 
         speedWpm = savedWpm;
         toneHz = tone_index_to_hz(savedToneIndex);
+        paddleLayout = byte3;
 
         if (toneHz == 0) {
             toneHz = DEFAULT_TONE_HZ;
@@ -454,8 +508,33 @@ void load_settings_from_eeprom(void) {
     }
 
     /*
+      Previous v1 format:
+        byte3 = checksum
+        layout did not exist
+    */
+    if (magic == EEPROM_MAGIC_V1 &&
+        savedWpm >= MIN_WPM &&
+        savedWpm <= MAX_WPM &&
+        savedToneIndex <= (MAX_TONE_HZ / 100) &&
+        byte3 == eeprom_v1_checksum(savedWpm, savedToneIndex)) {
+
+        speedWpm = savedWpm;
+        toneHz = tone_index_to_hz(savedToneIndex);
+        paddleLayout = PADDLE_LAYOUT_RIGHT;
+
+        if (toneHz == 0) {
+            toneHz = DEFAULT_TONE_HZ;
+        }
+
+        schedule_settings_save();
+        return;
+    }
+
+    /*
       Old format compatibility:
-      restore WPM, use default tone.
+        byte2 = checksum
+        tone did not exist
+        layout did not exist
     */
     if (magic == EEPROM_MAGIC_OLD &&
         savedWpm >= MIN_WPM &&
@@ -464,11 +543,15 @@ void load_settings_from_eeprom(void) {
 
         speedWpm = savedWpm;
         toneHz = DEFAULT_TONE_HZ;
+        paddleLayout = PADDLE_LAYOUT_RIGHT;
+
+        schedule_settings_save();
         return;
     }
 
     speedWpm = DEFAULT_WPM;
     toneHz = DEFAULT_TONE_HZ;
+    paddleLayout = PADDLE_LAYOUT_RIGHT;
 }
 
 void schedule_settings_save(void) {
@@ -489,7 +572,8 @@ void save_settings_to_eeprom(void) {
     iap_program_byte(EEPROM_ADDR_MAGIC, EEPROM_MAGIC);
     iap_program_byte(EEPROM_ADDR_WPM, speedWpm);
     iap_program_byte(EEPROM_ADDR_TONE, toneIndex);
-    iap_program_byte(EEPROM_ADDR_CHECK, eeprom_checksum(speedWpm, toneIndex));
+    iap_program_byte(EEPROM_ADDR_LAYOUT, paddleLayout);
+    iap_program_byte(EEPROM_ADDR_CHECK, eeprom_checksum(speedWpm, toneIndex, paddleLayout));
 }
 
 void handle_eeprom_save(void) {
@@ -521,8 +605,8 @@ void pins_init(void) {
       P3.0 -> DOWN input
       P3.1 -> UP input
 
-      P5.4 -> dash button input
-      P5.5 -> dot button input
+      P5.4 -> paddle input
+      P5.5 -> paddle input
     */
 
     /* P3.2 and P3.3 push-pull outputs */
@@ -552,32 +636,33 @@ void pins_init(void) {
 void update_buttons(void) {
     u32 now = millis();
 
-    u8 dotRaw;
-    u8 dashRaw;
+    u8 p54Raw;
+    u8 p55Raw;
     u8 downRaw;
     u8 upRaw;
 
-    dotRaw = (DOT_IN == 0) ? 1 : 0;
-    dashRaw = (DASH_IN == 0) ? 1 : 0;
+    p54Raw = (P54_IN == 0) ? 1 : 0;
+    p55Raw = (P55_IN == 0) ? 1 : 0;
+
     downRaw = (DOWN_IN == 0) ? 1 : 0;
     upRaw = (UP_IN == 0) ? 1 : 0;
 
-    if (dotRaw != dotLastRaw) {
-        dotLastRaw = dotRaw;
-        dotLastChangeMs = now;
+    if (p54Raw != p54LastRaw) {
+        p54LastRaw = p54Raw;
+        p54LastChangeMs = now;
     }
 
-    if ((now - dotLastChangeMs) >= DEBOUNCE_MS) {
-        dotStable = dotRaw;
+    if ((now - p54LastChangeMs) >= DEBOUNCE_MS) {
+        p54Stable = p54Raw;
     }
 
-    if (dashRaw != dashLastRaw) {
-        dashLastRaw = dashRaw;
-        dashLastChangeMs = now;
+    if (p55Raw != p55LastRaw) {
+        p55LastRaw = p55Raw;
+        p55LastChangeMs = now;
     }
 
-    if ((now - dashLastChangeMs) >= DEBOUNCE_MS) {
-        dashStable = dashRaw;
+    if ((now - p55LastChangeMs) >= DEBOUNCE_MS) {
+        p55Stable = p55Raw;
     }
 
     if (downRaw != downLastRaw) {
@@ -596,6 +681,25 @@ void update_buttons(void) {
 
     if ((now - upLastChangeMs) >= DEBOUNCE_MS) {
         upStable = upRaw;
+    }
+
+    /*
+      Convert physical paddle buttons to logical DOT/DASH.
+
+      RIGHT layout:
+        P5.5 = DASH
+        P5.4 = DOT
+
+      LEFT layout:
+        P5.5 = DOT
+        P5.4 = DASH
+    */
+    if (paddleLayout == PADDLE_LAYOUT_LEFT) {
+        dotStable = p55Stable;
+        dashStable = p54Stable;
+    } else {
+        dotStable = p54Stable;
+        dashStable = p55Stable;
     }
 }
 
@@ -644,6 +748,36 @@ void send_startup_hi(void) {
     KEY_OUT = 0;
 
     delay_ms_blocking(300);
+}
+
+/* ---------- Paddle layout switching ---------- */
+
+void play_layout_confirm_tone(void) {
+    /*
+      Confirmation tone only.
+      KEY output must stay inactive.
+    */
+    KEY_OUT = 0;
+
+    tone_on();
+    delay_ms_blocking(1000);
+    tone_off();
+
+    KEY_OUT = 0;
+}
+
+void set_paddle_layout(u8 layout) {
+    if (layout > PADDLE_LAYOUT_LEFT) {
+        return;
+    }
+
+    if (paddleLayout != layout) {
+        paddleLayout = layout;
+        save_settings_to_eeprom();
+        eepromSavePending = 0;
+    }
+
+    play_layout_confirm_tone();
 }
 
 /* ---------- Automatic CW messages ---------- */
@@ -826,7 +960,7 @@ void handle_keyer(void) {
     switch (keyerState) {
         case STATE_IDLE:
             /*
-              Dash has priority if both buttons are pressed.
+              Dash has priority if both paddles are pressed.
             */
             if (dashStable) {
                 start_dash();
@@ -899,10 +1033,10 @@ s8 get_adjust_direction(void) {
 
 AdjustMode get_adjust_mode(void) {
     /*
-      If DASH is held while pressing UP/DOWN,
+      If physical P5.5 is held while pressing UP/DOWN,
       adjust sidetone frequency instead of WPM.
     */
-    if (dashStable) {
+    if (p55Stable) {
         return ADJUST_MODE_TONE;
     }
 
@@ -995,6 +1129,15 @@ void start_adjust_speed_dot(s8 direction) {
     adjustUntilMs = millis() + get_dot_ms();
 }
 
+void wait_layout_buttons_release(void) {
+    /*
+      Prevent repeated switching while buttons are still held.
+    */
+    while (p54Stable || downStable || upStable) {
+        update_buttons();
+    }
+}
+
 void handle_adjust_buttons(void) {
     u32 now = millis();
     s8 direction;
@@ -1011,11 +1154,44 @@ void handle_adjust_buttons(void) {
     */
 
     /*
-      Tone adjustment mode:
-      Hold DASH and press UP/DOWN.
-      This mode keeps the old behavior.
+      Paddle layout switching.
+
+      Hold physical P5.4 and press:
+        P3.0 -> left-hand layout
+        P3.1 -> right-hand layout
+
+      This mode has priority over speed/tone adjustment.
     */
-    if (dashStable) {
+    if (p54Stable && (downStable || upStable)) {
+        auto_message_stop();
+        stop_keyer_keep_tone();
+
+        adjustState = ADJUST_STATE_IDLE;
+        adjustDirection = 0;
+
+        activeButton = 0;
+        longMode = 0;
+
+        if (downStable && !upStable) {
+            set_paddle_layout(PADDLE_LAYOUT_LEFT);
+            wait_layout_buttons_release();
+            return;
+        }
+
+        if (upStable && !downStable) {
+            set_paddle_layout(PADDLE_LAYOUT_RIGHT);
+            wait_layout_buttons_release();
+            return;
+        }
+
+        return;
+    }
+
+    /*
+      Tone adjustment mode:
+      Hold physical P5.5 and press UP/DOWN.
+    */
+    if (p55Stable) {
         activeButton = 0;
         longMode = 0;
 

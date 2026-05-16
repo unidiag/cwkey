@@ -27,7 +27,7 @@
 
   Normal mode:
     Short DOWN -> automatic message: CQ CQ DE EW6ML EW6ML EW6ML K
-    Short UP   -> automatic message: TNX QSO 73
+    Short UP   -> automatic message: TNX QSO 73 SK
 
     Long DOWN  -> speed DOWN
     Long UP    -> speed UP
@@ -43,6 +43,10 @@
       P3.1 -> RIGHT layout
 
     Confirmation: 1 second sidetone signal.
+
+  Important fix:
+    EEPROM is not written while paddles, keyer, sidetone,
+    automatic message, or adjustment mode are active.
 */
 
 typedef unsigned char  u8;
@@ -66,6 +70,13 @@ typedef signed char    s8;
 
 #define DEBOUNCE_MS         20
 #define LONG_PRESS_MS       1000
+
+/*
+  Time which physical P5.4/P5.5 must be held before it can be used
+  as a service modifier for layout/tone settings.
+  This protects normal DOT/DASH keying from accidental service modes.
+*/
+#define SERVICE_HOLD_MS     400
 
 /*
   Timer0 interrupt period: 100 us.
@@ -111,10 +122,10 @@ typedef signed char    s8;
   Stored in Flash/code memory, not in RAM.
 
   Morse format:
-    .  -> dot
-    -  -> dash
+    .     -> dot
+    -     -> dash
     space -> letter gap
-    / -> word gap
+    /     -> word gap
 */
 
 /*
@@ -130,7 +141,7 @@ const char code MSG_CQ[] =
     "-.-";
 
 /*
-  TNX QSO 73
+  TNX QSO 73 SK
 
   T = -
   N = -.
@@ -142,11 +153,15 @@ const char code MSG_CQ[] =
 
   7 = --...
   3 = ...--
+
+  S = ...
+  K = -.-
 */
 const char code MSG_73[] =
     "- -. -..-/"
     "--.- ... ---/"
-    "--... ...--";
+    "--... ...--/"
+    "... -.-";
 
 /* STC special function registers */
 sfr AUXR = 0x8E;
@@ -210,6 +225,13 @@ u8 p55LastRaw = 0;
 
 u32 p54LastChangeMs = 0;
 u32 p55LastChangeMs = 0;
+
+/*
+  Time when physical P5.4/P5.5 became stable pressed.
+  0 means not pressed.
+*/
+u32 p54PressedSinceMs = 0;
+u32 p55PressedSinceMs = 0;
 
 /*
   Logical debounced paddle states.
@@ -582,10 +604,43 @@ void handle_eeprom_save(void) {
     }
 
     /*
-      Do not write while adjustment buttons are still held.
-      This reduces EEPROM wear during long button holds.
+      Never write EEPROM while CW timing is active.
+
+      IAP erase/program can block CPU for several milliseconds.
+      If it happens during DOT_ON or DASH_ON, the current element
+      can become longer than expected.
+    */
+    if (keyerState != STATE_IDLE) {
+        return;
+    }
+
+    if (autoState != AUTO_STATE_IDLE) {
+        return;
+    }
+
+    if (adjustState != ADJUST_STATE_IDLE) {
+        return;
+    }
+
+    /*
+      Do not write while any control button is held.
     */
     if (downStable || upStable) {
+        return;
+    }
+
+    /*
+      Do not write while paddles are held.
+      This is important for stable manual keying.
+    */
+    if (dotStable || dashStable || p54Stable || p55Stable) {
+        return;
+    }
+
+    /*
+      Also avoid EEPROM write while output or sidetone is active.
+    */
+    if (KEY_OUT || toneEnabled) {
         return;
     }
 
@@ -684,6 +739,26 @@ void update_buttons(void) {
     }
 
     /*
+      Track how long physical service buttons are held.
+      0 means not pressed.
+    */
+    if (p54Stable) {
+        if (p54PressedSinceMs == 0) {
+            p54PressedSinceMs = now;
+        }
+    } else {
+        p54PressedSinceMs = 0;
+    }
+
+    if (p55Stable) {
+        if (p55PressedSinceMs == 0) {
+            p55PressedSinceMs = now;
+        }
+    } else {
+        p55PressedSinceMs = 0;
+    }
+
+    /*
       Convert physical paddle buttons to logical DOT/DASH.
 
       RIGHT layout:
@@ -778,6 +853,15 @@ void set_paddle_layout(u8 layout) {
     }
 
     play_layout_confirm_tone();
+}
+
+void wait_layout_buttons_release(void) {
+    /*
+      Prevent repeated switching while buttons are still held.
+    */
+    while (p54Stable || downStable || upStable) {
+        update_buttons();
+    }
 }
 
 /* ---------- Automatic CW messages ---------- */
@@ -1129,15 +1213,6 @@ void start_adjust_speed_dot(s8 direction) {
     adjustUntilMs = millis() + get_dot_ms();
 }
 
-void wait_layout_buttons_release(void) {
-    /*
-      Prevent repeated switching while buttons are still held.
-    */
-    while (p54Stable || downStable || upStable) {
-        update_buttons();
-    }
-}
-
 void handle_adjust_buttons(void) {
     u32 now = millis();
     s8 direction;
@@ -1156,13 +1231,17 @@ void handle_adjust_buttons(void) {
     /*
       Paddle layout switching.
 
-      Hold physical P5.4 and press:
+      Hold physical P5.4 for SERVICE_HOLD_MS and press:
         P3.0 -> left-hand layout
         P3.1 -> right-hand layout
 
       This mode has priority over speed/tone adjustment.
     */
-    if (p54Stable && (downStable || upStable)) {
+    if (p54Stable &&
+        p54PressedSinceMs != 0 &&
+        (now - p54PressedSinceMs) >= SERVICE_HOLD_MS &&
+        (downStable || upStable)) {
+
         auto_message_stop();
         stop_keyer_keep_tone();
 
@@ -1189,9 +1268,12 @@ void handle_adjust_buttons(void) {
 
     /*
       Tone adjustment mode:
-      Hold physical P5.5 and press UP/DOWN.
+      Hold physical P5.5 for SERVICE_HOLD_MS and press UP/DOWN.
     */
-    if (p55Stable) {
+    if (p55Stable &&
+        p55PressedSinceMs != 0 &&
+        (now - p55PressedSinceMs) >= SERVICE_HOLD_MS) {
+
         activeButton = 0;
         longMode = 0;
 
@@ -1316,7 +1398,7 @@ void handle_adjust_buttons(void) {
     else if (activeButton == 2) {
         /*
           Button released before long press threshold:
-          short press -> TNX QSO 73 message.
+          short press -> TNX QSO 73 SK message.
         */
         if (!upStable) {
             if (!longMode) {
